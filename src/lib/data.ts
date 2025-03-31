@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Course, Week, Chapter, User } from "@/types";
+import { Course, Week, Chapter, User, UserRole, UserStatus } from "@/types";
 import { mockCourses, mockWeeks, mockChapters } from "./mockData";
 
 // Course-related functions
@@ -318,7 +317,12 @@ export const getUsers = async (): Promise<User[]> => {
       return [];
     }
     
-    return data || [];
+    // Transform the role and status from string to their respective types
+    return (data || []).map(user => ({
+      ...user,
+      role: user.role as UserRole,
+      status: user.status as UserStatus
+    }));
   } catch (error) {
     console.error("Unexpected error fetching users:", error);
     return [];
@@ -338,7 +342,12 @@ export const getUser = async (id: string): Promise<User | null> => {
       return null;
     }
     
-    return data;
+    // Transform the role and status from string to their respective types
+    return data ? {
+      ...data,
+      role: data.role as UserRole,
+      status: data.status as UserStatus
+    } : null;
   } catch (error) {
     console.error("Unexpected error fetching user:", error);
     return null;
@@ -378,7 +387,11 @@ export const createUser = async (email: string, password: string, userData: Omit
       return null;
     }
 
-    return profile;
+    return profile ? {
+      ...profile,
+      role: profile.role as UserRole,
+      status: profile.status as UserStatus
+    } : null;
   } catch (error) {
     console.error("Error in createUser:", error);
     return null;
@@ -399,7 +412,12 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
       return null;
     }
     
-    return data;
+    // Transform the role and status from string to their respective types
+    return data ? {
+      ...data,
+      role: data.role as UserRole,
+      status: data.status as UserStatus
+    } : null;
   } catch (error) {
     console.error("Error in updateUser:", error);
     return null;
@@ -457,5 +475,5 @@ export const getAvailableWeeks = async (courseId: string, startDate: string): Pr
   }
 };
 
-// Export mockWeeks for development
-export { mockWeeks } from "./mockData";
+// Export mock data for development
+export { mockWeeks, mockChapters } from "./mockData";

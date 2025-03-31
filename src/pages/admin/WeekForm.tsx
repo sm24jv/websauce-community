@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { getCourse, getWeek, createWeek, updateWeek } from "@/lib/data";
+import { getCourse, getWeek, createWeek, updateWeek, getWeeksForCourse } from "@/lib/data";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
