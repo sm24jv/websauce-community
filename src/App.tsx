@@ -15,8 +15,19 @@ import Dashboard from "./pages/Dashboard";
 import CourseDetails from "./pages/CourseDetails";
 import WeekDetails from "./pages/WeekDetails";
 import ChapterDetails from "./pages/ChapterDetails";
-import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCourses from "./pages/admin/AdminCourses";
+import CourseForm from "./pages/admin/CourseForm";
+import AdminWeeks from "./pages/admin/AdminWeeks";
+import WeekForm from "./pages/admin/WeekForm";
+import AdminChapters from "./pages/admin/AdminChapters";
+import ChapterForm from "./pages/admin/ChapterForm";
+import AdminUsers from "./pages/admin/AdminUsers";
+import UserForm from "./pages/admin/UserForm";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +87,116 @@ const App = () => (
               element={
                 <PrivateRoute requiredRole="admin">
                   <AdminDashboard />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Admin Course Management */}
+            <Route 
+              path="/admin/courses" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminCourses />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/new" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <CourseForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/edit/:id" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <CourseForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminWeeks />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks/new" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <WeekForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks/edit/:weekId" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <WeekForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks/:weekId/chapters" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminChapters />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks/:weekId/chapters/new" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <ChapterForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/courses/:courseId/weeks/:weekId/chapters/edit/:chapterId" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <ChapterForm />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Admin User Management */}
+            <Route 
+              path="/admin/users" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminUsers />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users/new" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <UserForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users/edit/:userId" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <UserForm />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Admin Settings */}
+            <Route 
+              path="/admin/settings" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminSettings />
                 </PrivateRoute>
               } 
             />

@@ -9,13 +9,180 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chapters: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          pdf_url: string | null
+          thumbnail_url: string
+          title: string
+          updated_at: string
+          video_url: string
+          week_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          pdf_url?: string | null
+          thumbnail_url: string
+          title: string
+          updated_at?: string
+          video_url: string
+          week_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          pdf_url?: string | null
+          thumbnail_url?: string
+          title?: string
+          updated_at?: string
+          video_url?: string
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chapters_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          thumbnail_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          thumbnail_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          thumbnail_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      password_resets: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          email: string
+          end_date: string
+          id: string
+          role: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          email: string
+          end_date: string
+          id: string
+          role: string
+          start_date: string
+          status: string
+        }
+        Update: {
+          email?: string
+          end_date?: string
+          id?: string
+          role?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      weeks: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          index: number
+          short_description: string
+          thumbnail_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          index: number
+          short_description: string
+          thumbnail_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          index?: number
+          short_description?: string
+          thumbnail_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weeks_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

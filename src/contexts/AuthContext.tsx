@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@/types";
-import { getCurrentUser, login as authLogin, logout as authLogout } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { login as authLogin, logout as authLogout, getCurrentUser } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
@@ -24,7 +25,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       setUser(storedUser);
     }
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // We'll handle this in the login function
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          localStorage.removeItem("websauce_user");
+        }
+      }
+    );
+    
     setLoading(false);
+    
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -53,8 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   };
 
-  const logout = () => {
-    authLogout();
+  const logout = async () => {
+    await authLogout();
     setUser(null);
     toast({
       title: "Logged Out",
