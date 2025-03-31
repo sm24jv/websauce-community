@@ -1,0 +1,89 @@
+
+import React from "react";
+import { useParams, Link, Navigate } from "react-router-dom";
+import { getCourse, getChaptersForWeek, mockWeeks } from "@/lib/data";
+import Header from "@/components/Header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft } from "lucide-react";
+
+const WeekDetails: React.FC = () => {
+  const { courseId, weekId } = useParams<{ courseId: string; weekId: string }>();
+  
+  if (!courseId || !weekId) {
+    return <Navigate to="/" />;
+  }
+
+  const course = getCourse(courseId);
+  const week = mockWeeks.find(w => w.id === weekId);
+  
+  if (!course || !week) {
+    return <Navigate to={`/courses/${courseId}`} />;
+  }
+  
+  const chapters = getChaptersForWeek(weekId);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="mb-4">
+          <Link to={`/courses/${courseId}`} className="inline-flex items-center text-websauce-600 hover:text-websauce-700">
+            <ChevronLeft size={16} className="mr-1" />
+            <span>Back to Course</span>
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="md:w-1/3">
+              <div className="rounded-lg overflow-hidden">
+                <img 
+                  src={week.thumbnail_url} 
+                  alt={week.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            
+            <div className="md:w-2/3">
+              <div className="text-sm font-medium text-websauce-600 mb-1">Week {week.index}</div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">{week.title}</h1>
+              <p className="text-gray-600">{week.short_description}</p>
+            </div>
+          </div>
+        </div>
+
+        <section>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Chapters</h2>
+          
+          <div className="space-y-4">
+            {chapters.length > 0 ? (
+              chapters.map((chapter, index) => (
+                <Link to={`/courses/${courseId}/weeks/${weekId}/chapters/${chapter.id}`} key={chapter.id}>
+                  <Card className="border border-gray-200 hover:border-websauce-300 hover:shadow-md transition-all overflow-hidden">
+                    <div className="flex items-center p-4">
+                      <div className="mr-4 flex-shrink-0 w-12 h-12 rounded-full bg-websauce-100 text-websauce-700 flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{chapter.title}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-1">{chapter.description.substring(0, 100)}...</p>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            ) : (
+              <div className="text-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <p className="text-gray-500">No chapters available for this week.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default WeekDetails;
