@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { getCourse, createCourse, updateCourse } from "@/lib/data";
+import { getCourse } from "@/lib/data";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface CourseFormData {
   title: string;
@@ -27,8 +36,15 @@ const CourseForm: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<CourseFormData>();
+  const form = useForm<CourseFormData>({
+    defaultValues: {
+      title: "",
+      thumbnail_url: "",
+      description: ""
+    }
+  });
   
   // Fetch course data if in edit mode
   const { data: course, isLoading: isLoadingCourse } = useQuery({
@@ -40,18 +56,20 @@ const CourseForm: React.FC = () => {
   // Set form values when course data is loaded
   useEffect(() => {
     if (course) {
-      reset({
+      form.reset({
         title: course.title,
         thumbnail_url: course.thumbnail_url,
         description: course.description
       });
     }
-  }, [course, reset]);
+  }, [course, form]);
   
   // Create course mutation
   const createMutation = useMutation({
     mutationFn: async (data: CourseFormData) => {
-      // Direct Supabase query to bypass any RLS issues
+      console.log("Creating course with:", data);
+      
+      // Direct Supabase query with error handling
       const { data: newCourse, error } = await supabase
         .from('courses')
         .insert([data])
@@ -86,7 +104,9 @@ const CourseForm: React.FC = () => {
   // Update course mutation
   const updateMutation = useMutation({
     mutationFn: async (data: CourseFormData) => {
-      // Direct Supabase query to bypass any RLS issues
+      console.log("Updating course with:", data);
+      
+      // Direct Supabase query with error handling
       const { data: updatedCourse, error } = await supabase
         .from('courses')
         .update(data)
@@ -122,12 +142,38 @@ const CourseForm: React.FC = () => {
   
   const onSubmit = (data: CourseFormData) => {
     console.log("Submitting form data:", data);
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to perform this action.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (isEditMode) {
       updateMutation.mutate(data);
     } else {
       createMutation.mutate(data);
     }
   };
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <WebsauceHeader />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>
+              You must be logged in to create or edit courses.
+            </AlertDescription>
+          </Alert>
+        </main>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -165,61 +211,81 @@ const CourseForm: React.FC = () => {
               <span className="ml-3 text-lg text-gray-600">Loading...</span>
             </div>
           ) : (
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Course Title</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter course title"
-                    {...register("title", { required: "Title is required" })}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    rules={{ required: "Title is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Course Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter course title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnail_url"
-                    placeholder="Enter thumbnail URL"
-                    {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
+                  
+                  <FormField
+                    control={form.control}
+                    name="thumbnail_url"
+                    rules={{ required: "Thumbnail URL is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thumbnail URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter thumbnail URL" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Enter course description"
-                    className="h-32"
-                    {...register("description", { required: "Description is required" })}
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    rules={{ required: "Description is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter course description" 
+                            className="h-32"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                  {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => navigate("/admin/courses")}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  className="bg-websauce-600 hover:bg-websauce-700"
-                >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Saving..."
-                    : isEditMode
-                      ? "Update Course"
-                      : "Create Course"
-                  }
-                </Button>
-              </CardFooter>
-            </form>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-4">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/courses")}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                    className="bg-websauce-600 hover:bg-websauce-700"
+                  >
+                    {createMutation.isPending || updateMutation.isPending
+                      ? "Saving..."
+                      : isEditMode
+                        ? "Update Course"
+                        : "Create Course"
+                    }
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
           )}
         </Card>
       </main>
