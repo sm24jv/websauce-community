@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const WebsauceHeader: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <header className="bg-white shadow-sm">
@@ -34,7 +34,7 @@ const WebsauceHeader: React.FC = () => {
               <Button 
                 variant="outline" 
                 className="text-gray-700 border-gray-300 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => signOut()}
+                onClick={() => logout()}
               >
                 Sign Out
               </Button>
