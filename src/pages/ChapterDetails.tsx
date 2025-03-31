@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
-import { getChapter, getCourse, mockWeeks } from "@/lib/data";
+import { getChapter, getCourse, getWeek } from "@/lib/data";
+import { Chapter, Course, Week } from "@/types";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Download } from "lucide-react";
@@ -13,13 +14,45 @@ const ChapterDetails: React.FC = () => {
     chapterId: string;
   }>();
   
+  const [course, setCourse] = useState<Course | null>(null);
+  const [week, setWeek] = useState<Week | null>(null);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!courseId || !weekId || !chapterId) return;
+      
+      setLoading(true);
+      const [courseData, weekData, chapterData] = await Promise.all([
+        getCourse(courseId),
+        getWeek(weekId),
+        getChapter(chapterId)
+      ]);
+      
+      setCourse(courseData);
+      setWeek(weekData);
+      setChapter(chapterData);
+      setLoading(false);
+    };
+    
+    fetchData();
+  }, [courseId, weekId, chapterId]);
+  
   if (!courseId || !weekId || !chapterId) {
     return <Navigate to="/" />;
   }
 
-  const course = getCourse(courseId);
-  const week = mockWeeks.find(w => w.id === weekId);
-  const chapter = getChapter(chapterId);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="animate-pulse text-websauce-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
   
   if (!course || !week || !chapter) {
     return <Navigate to={`/courses/${courseId}/weeks/${weekId}`} />;

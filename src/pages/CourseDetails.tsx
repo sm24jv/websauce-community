@@ -1,8 +1,9 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourse, getAvailableWeeks } from "@/lib/data";
+import { Course, Week } from "@/types";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,26 +13,62 @@ const CourseDetails: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
   
+  const [course, setCourse] = useState<Course | null>(null);
+  const [availableWeeks, setAvailableWeeks] = useState<Week[]>([]);
+  const [allWeeks, setAllWeeks] = useState<Week[]>([]);
+  const [lockedWeeks, setLockedWeeks] = useState<Week[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!courseId) return;
+      
+      setLoading(true);
+      const courseData = await getCourse(courseId);
+      setCourse(courseData);
+      
+      if (user) {
+        const userAvailableWeeks = await getAvailableWeeks(courseId, user.start_date);
+        setAvailableWeeks(userAvailableWeeks);
+        
+        const allWeeksData = await getAvailableWeeks(courseId, new Date(0).toISOString());
+        setAllWeeks(allWeeksData);
+        
+        // Calculate locked weeks
+        const locked = allWeeksData.filter(
+          week => !userAvailableWeeks.some(availableWeek => availableWeek.id === week.id)
+        );
+        setLockedWeeks(locked);
+      } else {
+        const allWeeksData = await getAvailableWeeks(courseId, new Date(0).toISOString());
+        setAllWeeks(allWeeksData);
+        setLockedWeeks(allWeeksData);
+      }
+      
+      setLoading(false);
+    };
+    
+    fetchData();
+  }, [courseId, user]);
+  
   if (!courseId) {
     return <Navigate to="/" />;
   }
 
-  const course = getCourse(courseId);
-  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="animate-pulse text-websauce-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (!course) {
     return <Navigate to="/" />;
   }
-  
-  const availableWeeks = user 
-    ? getAvailableWeeks(courseId, user.start_date)
-    : [];
-  
-  const allWeeks = getAvailableWeeks(courseId, new Date(0).toISOString());
-
-  // Calculate locked weeks
-  const lockedWeeks = allWeeks.filter(
-    week => !availableWeeks.some(availableWeek => availableWeek.id === week.id)
-  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

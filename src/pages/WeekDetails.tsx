@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
-import { getCourse, getChaptersForWeek, mockWeeks } from "@/lib/data";
+import { getCourse, getChaptersForWeek, getWeek } from "@/lib/data";
+import { Course, Week, Chapter } from "@/types";
 import Header from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
@@ -9,18 +10,49 @@ import { ChevronLeft } from "lucide-react";
 const WeekDetails: React.FC = () => {
   const { courseId, weekId } = useParams<{ courseId: string; weekId: string }>();
   
+  const [course, setCourse] = useState<Course | null>(null);
+  const [week, setWeek] = useState<Week | null>(null);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!courseId || !weekId) return;
+      
+      setLoading(true);
+      const [courseData, weekData, chaptersData] = await Promise.all([
+        getCourse(courseId),
+        getWeek(weekId),
+        getChaptersForWeek(weekId)
+      ]);
+      
+      setCourse(courseData);
+      setWeek(weekData);
+      setChapters(chaptersData);
+      setLoading(false);
+    };
+    
+    fetchData();
+  }, [courseId, weekId]);
+  
   if (!courseId || !weekId) {
     return <Navigate to="/" />;
   }
 
-  const course = getCourse(courseId);
-  const week = mockWeeks.find(w => w.id === weekId);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="animate-pulse text-websauce-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
   
   if (!course || !week) {
     return <Navigate to={`/courses/${courseId}`} />;
   }
-  
-  const chapters = getChaptersForWeek(weekId);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

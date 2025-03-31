@@ -1,15 +1,28 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourses } from "@/lib/data";
+import { Course } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import { CalendarDays } from "lucide-react";
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const courses = getCourses();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      const fetchedCourses = await getCourses();
+      setCourses(fetchedCourses);
+      setLoading(false);
+    };
+
+    fetchCourses();
+  }, []);
 
   // Calculate days since membership start
   const daysSinceMembership = user ? Math.floor(
@@ -32,36 +45,42 @@ const Dashboard: React.FC = () => {
         <section className="mb-10">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">My Courses</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => (
-              <Link to={`/courses/${course.id}`} key={course.id} className="group">
-                <Card className="course-card h-full transition-all border border-gray-200 hover:border-websauce-300">
-                  <div className="aspect-video w-full overflow-hidden rounded-t-lg">
-                    <img 
-                      src={course.thumbnail_url} 
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xl group-hover:text-websauce-600 transition-colors">
-                      {course.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <CardDescription>{course.description}</CardDescription>
-                  </CardContent>
-                  <CardFooter>
-                    <div className="text-sm font-medium text-websauce-600">
-                      View course
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-pulse text-websauce-500">Loading courses...</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map((course) => (
+                <Link to={`/courses/${course.id}`} key={course.id} className="group">
+                  <Card className="course-card h-full transition-all border border-gray-200 hover:border-websauce-300">
+                    <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+                      <img 
+                        src={course.thumbnail_url} 
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                  </CardFooter>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xl group-hover:text-websauce-600 transition-colors">
+                        {course.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <CardDescription>{course.description}</CardDescription>
+                    </CardContent>
+                    <CardFooter>
+                      <div className="text-sm font-medium text-websauce-600">
+                        View course
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
           
-          {courses.length === 0 && (
+          {!loading && courses.length === 0 && (
             <div className="text-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300">
               <p className="text-gray-500">No courses available yet.</p>
             </div>
