@@ -3,15 +3,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { getCourse, createCourse, updateCourse } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CourseFormData {
   title: string;
@@ -57,10 +58,11 @@ const CourseForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       navigate("/admin/courses");
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Create course error:", error);
       toast({
         title: "Error",
-        description: "Failed to create course",
+        description: error.message || "Failed to create course. There might be an issue with database permissions.",
         variant: "destructive",
       });
     }
@@ -78,10 +80,11 @@ const CourseForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['course', id] });
       navigate("/admin/courses");
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Update course error:", error);
       toast({
         title: "Error",
-        description: "Failed to update course",
+        description: error.message || "Failed to update course. There might be an issue with database permissions.",
         variant: "destructive",
       });
     }
@@ -97,7 +100,7 @@ const CourseForm: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -110,65 +113,83 @@ const CourseForm: React.FC = () => {
             <span>Back to Courses</span>
           </Button>
         </div>
+
+        {(createMutation.error || updateMutation.error) && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              There was an issue saving the data to Supabase. This could be related to database permissions or Row Level Security policies.
+              Please ensure you're logged in with the correct account.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>{isEditMode ? "Edit Course" : "Create New Course"}</CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Course Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter course title"
-                  {...register("title", { required: "Title is required" })}
-                />
-                {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                <Input
-                  id="thumbnail_url"
-                  placeholder="Enter thumbnail URL"
-                  {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
-                />
-                {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter course description"
-                  className="h-32"
-                  {...register("description", { required: "Description is required" })}
-                />
-                {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => navigate("/admin/courses")}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Update Course"
-                    : "Create Course"
-                }
-              </Button>
-            </CardFooter>
-          </form>
+          {isLoadingCourse ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-websauce-600" />
+              <span className="ml-3 text-lg text-gray-600">Loading...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Course Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter course title"
+                    {...register("title", { required: "Title is required" })}
+                  />
+                  {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
+                  <Input
+                    id="thumbnail_url"
+                    placeholder="Enter thumbnail URL"
+                    {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
+                  />
+                  {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter course description"
+                    className="h-32"
+                    {...register("description", { required: "Description is required" })}
+                  />
+                  {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => navigate("/admin/courses")}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="bg-websauce-600 hover:bg-websauce-700"
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : isEditMode
+                      ? "Update Course"
+                      : "Create Course"
+                  }
+                </Button>
+              </CardFooter>
+            </form>
+          )}
         </Card>
       </main>
     </div>

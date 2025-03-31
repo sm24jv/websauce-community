@@ -3,15 +3,16 @@ import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { getWeek, getChapter, createChapter, updateChapter } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ChapterFormData {
   title: string;
@@ -31,14 +32,14 @@ const ChapterForm: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<ChapterFormData>();
   
   // Fetch week data
-  const { data: week } = useQuery({
+  const { data: week, isLoading: isLoadingWeek } = useQuery({
     queryKey: ['week', weekId],
     queryFn: () => getWeek(weekId!),
     enabled: !!weekId,
   });
   
   // Fetch chapter data if in edit mode
-  const { data: chapter } = useQuery({
+  const { data: chapter, isLoading: isLoadingChapter } = useQuery({
     queryKey: ['chapter', chapterId],
     queryFn: () => getChapter(chapterId!),
     enabled: isEditMode,
@@ -71,10 +72,11 @@ const ChapterForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['chapters', weekId] });
       navigate(`/admin/courses/${courseId}/weeks/${weekId}/chapters`);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Create chapter error:", error);
       toast({
         title: "Error",
-        description: "Failed to create chapter",
+        description: error.message || "Failed to create chapter. There might be an issue with database permissions.",
         variant: "destructive",
       });
     }
@@ -92,10 +94,11 @@ const ChapterForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['chapter', chapterId] });
       navigate(`/admin/courses/${courseId}/weeks/${weekId}/chapters`);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Update chapter error:", error);
       toast({
         title: "Error",
-        description: "Failed to update chapter",
+        description: error.message || "Failed to update chapter. There might be an issue with database permissions.",
         variant: "destructive",
       });
     }
@@ -108,10 +111,12 @@ const ChapterForm: React.FC = () => {
       createMutation.mutate(data);
     }
   };
+
+  const isLoading = isLoadingWeek || isLoadingChapter;
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -124,6 +129,16 @@ const ChapterForm: React.FC = () => {
             <span>Back to Chapters</span>
           </Button>
         </div>
+
+        {(createMutation.error || updateMutation.error) && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              There was an issue saving the data to Supabase. This could be related to database permissions or Row Level Security policies.
+              Please ensure you're logged in with the correct account.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
@@ -132,79 +147,87 @@ const ChapterForm: React.FC = () => {
               {week && <span className="text-gray-500 ml-2 text-sm">for Week {week.index} - {week.title}</span>}
             </CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Chapter Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter chapter title"
-                  {...register("title", { required: "Title is required" })}
-                />
-                {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                <Input
-                  id="thumbnail_url"
-                  placeholder="Enter thumbnail URL"
-                  {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
-                />
-                {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="video_url">Video URL</Label>
-                <Input
-                  id="video_url"
-                  placeholder="Enter Vimeo video URL"
-                  {...register("video_url", { required: "Video URL is required" })}
-                />
-                {errors.video_url && <p className="text-red-500 text-sm">{errors.video_url.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter chapter description"
-                  className="h-32"
-                  {...register("description", { required: "Description is required" })}
-                />
-                {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="pdf_url">PDF URL (optional)</Label>
-                <Input
-                  id="pdf_url"
-                  placeholder="Enter PDF URL"
-                  {...register("pdf_url")}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => navigate(`/admin/courses/${courseId}/weeks/${weekId}/chapters`)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Update Chapter"
-                    : "Create Chapter"
-                }
-              </Button>
-            </CardFooter>
-          </form>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-websauce-600" />
+              <span className="ml-3 text-lg text-gray-600">Loading...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Chapter Title</Label>
+                  <Input
+                    id="title"
+                    placeholder="Enter chapter title"
+                    {...register("title", { required: "Title is required" })}
+                  />
+                  {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
+                  <Input
+                    id="thumbnail_url"
+                    placeholder="Enter thumbnail URL"
+                    {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
+                  />
+                  {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="video_url">Video URL</Label>
+                  <Input
+                    id="video_url"
+                    placeholder="Enter Vimeo video URL"
+                    {...register("video_url", { required: "Video URL is required" })}
+                  />
+                  {errors.video_url && <p className="text-red-500 text-sm">{errors.video_url.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Enter chapter description"
+                    className="h-32"
+                    {...register("description", { required: "Description is required" })}
+                  />
+                  {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="pdf_url">PDF URL (optional)</Label>
+                  <Input
+                    id="pdf_url"
+                    placeholder="Enter PDF URL"
+                    {...register("pdf_url")}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => navigate(`/admin/courses/${courseId}/weeks/${weekId}/chapters`)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="bg-websauce-600 hover:bg-websauce-700"
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : isEditMode
+                      ? "Update Chapter"
+                      : "Create Chapter"
+                  }
+                </Button>
+              </CardFooter>
+            </form>
+          )}
         </Card>
       </main>
     </div>
