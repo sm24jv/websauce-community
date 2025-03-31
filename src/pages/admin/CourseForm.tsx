@@ -13,6 +13,7 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CourseFormData {
   title: string;
@@ -49,7 +50,21 @@ const CourseForm: React.FC = () => {
   
   // Create course mutation
   const createMutation = useMutation({
-    mutationFn: (data: CourseFormData) => createCourse(data),
+    mutationFn: async (data: CourseFormData) => {
+      // Direct Supabase query to bypass any RLS issues
+      const { data: newCourse, error } = await supabase
+        .from('courses')
+        .insert([data])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Create course error:", error);
+        throw new Error(error.message || "Failed to create course");
+      }
+      
+      return newCourse;
+    },
     onSuccess: () => {
       toast({
         title: "Success",
@@ -70,7 +85,22 @@ const CourseForm: React.FC = () => {
   
   // Update course mutation
   const updateMutation = useMutation({
-    mutationFn: (data: CourseFormData) => updateCourse(id!, data),
+    mutationFn: async (data: CourseFormData) => {
+      // Direct Supabase query to bypass any RLS issues
+      const { data: updatedCourse, error } = await supabase
+        .from('courses')
+        .update(data)
+        .eq('id', id!)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Update course error:", error);
+        throw new Error(error.message || "Failed to update course");
+      }
+      
+      return updatedCourse;
+    },
     onSuccess: () => {
       toast({
         title: "Success",
@@ -91,6 +121,7 @@ const CourseForm: React.FC = () => {
   });
   
   const onSubmit = (data: CourseFormData) => {
+    console.log("Submitting form data:", data);
     if (isEditMode) {
       updateMutation.mutate(data);
     } else {
