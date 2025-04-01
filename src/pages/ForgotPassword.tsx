@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { requestPasswordReset } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -25,7 +27,7 @@ const ForgotPassword: React.FC = () => {
         setSubmitted(true);
         toast({
           title: "Reset Link Sent",
-          description: "Check your email for a password reset link.",
+          description: "If this email exists in our system, you'll receive a password reset link.",
         });
       } else if (error) {
         toast({
@@ -45,6 +47,9 @@ const ForgotPassword: React.FC = () => {
     }
   };
 
+  const isDevelopment = window.location.hostname === 'localhost' || 
+                        window.location.hostname.includes('lovableproject.com');
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-secondary">
       <div className="w-full max-w-md p-4 animate-fade-in">
@@ -57,6 +62,19 @@ const ForgotPassword: React.FC = () => {
                 : "Check your email for a password reset link"}
             </CardDescription>
           </CardHeader>
+          
+          {isDevelopment && !submitted && (
+            <div className="px-6 pb-2">
+              <Alert>
+                <InfoIcon className="h-4 w-4" />
+                <AlertDescription>
+                  In development environments, password reset emails might not be delivered. 
+                  Check Supabase dashboard for the reset link.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+          
           {!submitted ? (
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
@@ -97,6 +115,16 @@ const ForgotPassword: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 If you don't see the email, check your spam folder.
               </p>
+              {isDevelopment && (
+                <Alert className="mt-4">
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertDescription>
+                    <p>In development environments, password reset emails might not be delivered.</p>
+                    <p className="font-medium">Check the Supabase dashboard:</p>
+                    <p>Authentication → Users → Find your user → "Send reset password email"</p>
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="pt-4">
                 <Link to="/login">
                   <Button

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,17 +8,53 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { createUser } from "@/lib/auth";
+import { UserRole, UserStatus } from "@/types";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adminCreated, setAdminCreated] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/";
+
+  // Create standard admin user if it doesn't exist
+  useEffect(() => {
+    const createAdminUser = async () => {
+      try {
+        // Check if admin user exists by trying to login
+        const adminEmail = "jan@websauce.be";
+        const adminPassword = "Websauce123!";
+        
+        // Create the admin user
+        const userData = {
+          role: "admin" as UserRole,
+          status: "active" as UserStatus,
+          start_date: new Date().toISOString(),
+          end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+        };
+        
+        const user = await createUser(adminEmail, adminPassword, userData);
+        if (user) {
+          console.log("Admin user created successfully:", user);
+          setAdminCreated(true);
+        } else {
+          console.log("Admin user already exists or couldn't be created");
+        }
+      } catch (error) {
+        console.error("Error creating admin user:", error);
+      }
+    };
+
+    if (!adminCreated) {
+      createAdminUser();
+    }
+  }, [adminCreated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +72,11 @@ const Login: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const fillAdminCredentials = () => {
+    setEmail("jan@websauce.be");
+    setPassword("Websauce123!");
   };
 
   return (
@@ -89,7 +130,7 @@ const Login: React.FC = () => {
                 />
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-2">
               <Button
                 type="submit"
                 className="w-full bg-websauce-600 hover:bg-websauce-700"
@@ -97,19 +138,29 @@ const Login: React.FC = () => {
               >
                 {isSubmitting ? "Logging in..." : "Log in"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={fillAdminCredentials}
+                className="w-full"
+              >
+                Use Admin Credentials
+              </Button>
             </CardFooter>
           </form>
         </Card>
         <div className="mt-6 text-center text-sm">
           <p className="text-muted-foreground">
-            Demo Accounts:
+            Admin Login:
           </p>
-          <div className="mt-2 text-xs space-y-1">
-            <p><strong>Admin:</strong> admin@websauce.com / admin123</p>
-            <p><strong>User:</strong> user@websauce.com / user123</p>
-            <p><strong>Paused:</strong> paused@websauce.com / paused123</p>
-            <p><strong>Expired:</strong> expired@websauce.com / expired123</p>
+          <div className="mt-2 text-xs">
+            <p><strong>Email:</strong> jan@websauce.be</p>
+            <p><strong>Password:</strong> Websauce123!</p>
           </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Note: For development environments, password reset emails may not be delivered.
+            Check Supabase dashboard &gt; Authentication &gt; Users
+          </p>
         </div>
       </div>
     </div>

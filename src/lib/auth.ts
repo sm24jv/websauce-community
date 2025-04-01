@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserRole, UserStatus } from "@/types";
 
@@ -90,13 +89,29 @@ export const hasRole = (role: UserRole): boolean => {
 export const requestPasswordReset = async (email: string): Promise<{ success: boolean; error: string | null }> => {
   try {
     console.log("Requesting password reset for:", email);
+    
+    // Check if the app is running in development/preview mode
+    const isDevelopment = window.location.hostname === 'localhost' || 
+                          window.location.hostname.includes('lovableproject.com');
+    
+    // Use the current window location for redirectTo
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    console.log("Reset password redirect URL:", redirectUrl);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`
+      redirectTo: redirectUrl
     });
     
     if (error) {
       console.error("Password reset request error:", error);
       return { success: false, error: error.message };
+    }
+    
+    // For development environments, log a helpful message
+    if (isDevelopment) {
+      console.log("PASSWORD RESET REQUEST SUCCESSFUL");
+      console.log("Note: In development environments, you may not receive an email.");
+      console.log("Check Supabase dashboard > Authentication > Users to find the user and use the 'Send reset password email' option for testing.");
     }
     
     return { success: true, error: null };
