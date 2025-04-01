@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -47,8 +46,7 @@ const ForgotPassword: React.FC = () => {
     }
   };
 
-  const isDevelopment = window.location.hostname === 'localhost' || 
-                        window.location.hostname.includes('lovableproject.com');
+  const isDevelopment = window.location.hostname === 'localhost';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-secondary">
@@ -68,8 +66,7 @@ const ForgotPassword: React.FC = () => {
               <Alert>
                 <InfoIcon className="h-4 w-4" />
                 <AlertDescription>
-                  In development environments, password reset emails might not be delivered. 
-                  Check Supabase dashboard for the reset link.
+                  In development environments, password reset emails might not be delivered.
                 </AlertDescription>
               </Alert>
             </div>
@@ -120,8 +117,6 @@ const ForgotPassword: React.FC = () => {
                   <InfoIcon className="h-4 w-4" />
                   <AlertDescription>
                     <p>In development environments, password reset emails might not be delivered.</p>
-                    <p className="font-medium">Check the Supabase dashboard:</p>
-                    <p>Authentication → Users → Find your user → "Send reset password email"</p>
                   </AlertDescription>
                 </Alert>
               )}

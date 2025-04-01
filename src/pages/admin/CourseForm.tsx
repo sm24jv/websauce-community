@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { getCourse } from "@/lib/data";
+import { getCourse, createCourse, updateCourse } from "@/lib/data";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,6 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Form,
@@ -68,19 +66,10 @@ const CourseForm: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async (data: CourseFormData) => {
       console.log("Creating course with:", data);
-      
-      // Direct Supabase query with error handling
-      const { data: newCourse, error } = await supabase
-        .from('courses')
-        .insert([data])
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Create course error:", error);
-        throw new Error(error.message || "Failed to create course");
+      const newCourse = await createCourse(data);
+      if (!newCourse) {
+        throw new Error("Failed to create course");
       }
-      
       return newCourse;
     },
     onSuccess: () => {
@@ -95,7 +84,7 @@ const CourseForm: React.FC = () => {
       console.error("Create course error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create course. There might be an issue with database permissions.",
+        description: error.message || "Failed to create course",
         variant: "destructive",
       });
     }
@@ -105,20 +94,10 @@ const CourseForm: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: async (data: CourseFormData) => {
       console.log("Updating course with:", data);
-      
-      // Direct Supabase query with error handling
-      const { data: updatedCourse, error } = await supabase
-        .from('courses')
-        .update(data)
-        .eq('id', id!)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error("Update course error:", error);
-        throw new Error(error.message || "Failed to update course");
+      const updatedCourse = await updateCourse(id!, data);
+      if (!updatedCourse) {
+        throw new Error("Failed to update course");
       }
-      
       return updatedCourse;
     },
     onSuccess: () => {
@@ -134,7 +113,7 @@ const CourseForm: React.FC = () => {
       console.error("Update course error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update course. There might be an issue with database permissions.",
+        description: error.message || "Failed to update course",
         variant: "destructive",
       });
     }
@@ -195,8 +174,7 @@ const CourseForm: React.FC = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>
-              There was an issue saving the data to Supabase. This could be related to database permissions or Row Level Security policies.
-              Please ensure you're logged in with the correct account.
+              There was an issue saving the data. Please ensure you're logged in with the correct account.
             </AlertDescription>
           </Alert>
         )}
@@ -252,36 +230,34 @@ const CourseForm: React.FC = () => {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Enter course description" 
-                            className="h-32"
-                            {...field} 
-                          />
+                          <Textarea placeholder="Enter course description" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </CardContent>
+                
                 <CardFooter className="flex justify-end space-x-4">
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => navigate("/admin/courses")}
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     type="submit"
                     disabled={createMutation.isPending || updateMutation.isPending}
-                    className="bg-websauce-600 hover:bg-websauce-700"
                   >
-                    {createMutation.isPending || updateMutation.isPending
-                      ? "Saving..."
-                      : isEditMode
-                        ? "Update Course"
-                        : "Create Course"
-                    }
+                    {createMutation.isPending || updateMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Course"
+                    )}
                   </Button>
                 </CardFooter>
               </form>
