@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { Pencil, Trash, Plus, ChevronLeft, BookOpen } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminWeeks: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -20,12 +21,16 @@ const AdminWeeks: React.FC = () => {
     queryKey: ['course', courseId],
     queryFn: () => getCourse(courseId!),
     enabled: !!courseId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
   });
   
   const { data: weeks = [], isLoading: isLoadingWeeks } = useQuery({
     queryKey: ['weeks', courseId],
     queryFn: () => getWeeksForCourse(courseId!),
     enabled: !!courseId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
   });
 
   const handleEdit = (weekId: string) => {
@@ -76,8 +81,11 @@ const AdminWeeks: React.FC = () => {
           </Button>
         </div>
         
-        {isLoading ? (
-          <div className="text-center py-8">Loading...</div>
+        {isLoadingCourse ? (
+          <div className="space-y-2 mb-6">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
         ) : course ? (
           <>
             <div className="flex justify-between items-center mb-6">
@@ -105,7 +113,24 @@ const AdminWeeks: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {weeks.length > 0 ? (
+                  {isLoadingWeeks ? (
+                    <>
+                      {[1, 2, 3].map((i) => (
+                        <TableRow key={`skeleton-${i}`}>
+                          <TableCell><Skeleton className="h-5 w-5" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                          <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Skeleton className="h-8 w-8" />
+                              <Skeleton className="h-8 w-8" />
+                              <Skeleton className="h-8 w-8" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </>
+                  ) : weeks.length > 0 ? (
                     weeks.map((week) => (
                       <TableRow key={week.id}>
                         <TableCell>{week.index}</TableCell>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Course } from "@/types";
 import { getCourses, deleteCourse } from "@/lib/data";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/components/ui/use-toast";
 import { Pencil, Trash, Plus, Layers } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminCourses: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,9 @@ const AdminCourses: React.FC = () => {
   
   const { data: courses = [], isLoading, error } = useQuery({
     queryKey: ['courses'],
-    queryFn: getCourses
+    queryFn: getCourses,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
   });
 
   const handleEdit = (courseId: string) => {
@@ -64,7 +67,32 @@ const AdminCourses: React.FC = () => {
         </div>
         
         {isLoading ? (
-          <div className="text-center py-8">Loading courses...</div>
+          <div className="bg-white shadow-sm rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[150px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3].map((i) => (
+                  <TableRow key={`skeleton-${i}`}>
+                    <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : error ? (
           <div className="text-center py-8 text-red-500">Error loading courses</div>
         ) : (

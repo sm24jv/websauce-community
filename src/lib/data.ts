@@ -1,9 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Course, Week, Chapter, User, UserRole, UserStatus } from "@/types";
 import { mockCourses, mockWeeks, mockChapters } from "./mockData";
 
 // Course-related functions
 export const getCourses = async (): Promise<Course[]> => {
+  console.log("Fetching courses");
   try {
     const { data, error } = await supabase
       .from('courses')
@@ -23,19 +25,25 @@ export const getCourses = async (): Promise<Course[]> => {
 };
 
 export const getCourse = async (id: string): Promise<Course | null> => {
+  console.log("Fetching course:", id);
+  if (!id) {
+    console.warn("getCourse called without an id");
+    return null;
+  }
+  
   try {
     const { data, error } = await supabase
       .from('courses')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error("Error fetching course:", error);
       return mockCourses.find(c => c.id === id) || null;
     }
     
-    return data;
+    return data || mockCourses.find(c => c.id === id) || null;
   } catch (error) {
     console.error("Unexpected error fetching course:", error);
     return mockCourses.find(c => c.id === id) || null;
@@ -104,6 +112,12 @@ export const deleteCourse = async (id: string): Promise<boolean> => {
 
 // Week-related functions
 export const getWeeksForCourse = async (courseId: string): Promise<Week[]> => {
+  console.log("Fetching weeks for course:", courseId);
+  if (!courseId) {
+    console.warn("getWeeksForCourse called without a courseId");
+    return [];
+  }
+  
   try {
     const { data, error } = await supabase
       .from('weeks')
@@ -124,19 +138,25 @@ export const getWeeksForCourse = async (courseId: string): Promise<Week[]> => {
 };
 
 export const getWeek = async (id: string): Promise<Week | null> => {
+  console.log("Fetching week:", id);
+  if (!id) {
+    console.warn("getWeek called without an id");
+    return null;
+  }
+  
   try {
     const { data, error } = await supabase
       .from('weeks')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error("Error fetching week:", error);
       return mockWeeks.find(w => w.id === id) || null;
     }
     
-    return data;
+    return data || mockWeeks.find(w => w.id === id) || null;
   } catch (error) {
     console.error("Unexpected error fetching week:", error);
     return mockWeeks.find(w => w.id === id) || null;

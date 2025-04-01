@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourses } from "@/lib/data";
@@ -7,22 +7,18 @@ import { Course } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
 import { CalendarDays } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      setLoading(true);
-      const fetchedCourses = await getCourses();
-      setCourses(fetchedCourses);
-      setLoading(false);
-    };
-
-    fetchCourses();
-  }, []);
+  const { data: courses = [], isLoading } = useQuery({
+    queryKey: ['courses'],
+    queryFn: getCourses,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+  });
 
   // Calculate days since membership start
   const daysSinceMembership = user ? Math.floor(
@@ -45,9 +41,23 @@ const Dashboard: React.FC = () => {
         <section className="mb-10">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6">My Courses</h2>
           
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-pulse text-websauce-500">Loading courses...</div>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={`skeleton-${i}`} className="overflow-hidden">
+                  <Skeleton className="h-48 w-full" />
+                  <CardHeader className="pb-2">
+                    <Skeleton className="h-6 w-3/4" />
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter>
+                    <Skeleton className="h-4 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -80,7 +90,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
           
-          {!loading && courses.length === 0 && (
+          {!isLoading && courses.length === 0 && (
             <div className="text-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300">
               <p className="text-gray-500">No courses available yet.</p>
             </div>
