@@ -1,8 +1,8 @@
-
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { getUser, createUser, updateUser } from "@/lib/data";
+import { getUser, updateUser } from "@/lib/data";
+import { createUser } from "@/lib/auth";
 import { User, UserRole, UserStatus } from "@/types";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";

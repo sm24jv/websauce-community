@@ -52,7 +52,7 @@ export const updatePassword = async (newPassword: string) => {
 
 // Firestore functions
 export const createUserProfile = async (userId: string, userData: Omit<User, 'id'>) => {
-  await setDoc(doc(db, 'profiles', userId), {
+  await setDoc(doc(db, 'users', userId), {
     ...userData,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -60,7 +60,7 @@ export const createUserProfile = async (userId: string, userData: Omit<User, 'id
 };
 
 export const getUserProfile = async (userId: string): Promise<User | null> => {
-  const docRef = doc(db, 'profiles', userId);
+  const docRef = doc(db, 'users', userId);
   const docSnap = await getDoc(docRef);
   
   if (docSnap.exists()) {
@@ -71,7 +71,9 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
       role: data.role as UserRole,
       status: data.status as UserStatus,
       start_date: data.start_date,
-      end_date: data.end_date
+      end_date: data.end_date,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   }
   
@@ -79,7 +81,7 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
 };
 
 export const updateUserProfile = async (userId: string, data: Partial<User>) => {
-  const userRef = doc(db, 'profiles', userId);
+  const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     ...data,
     updatedAt: serverTimestamp()
