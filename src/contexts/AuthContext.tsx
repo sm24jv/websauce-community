@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@/types";
+import { User, UserRole, UserStatus } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { login as authLogin, logout as authLogout, getCurrentUser } from "@/lib/auth";
 import { useToast } from "@/components/ui/use-toast";
@@ -47,8 +47,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const userProfile: User = {
                 id: session.user.id,
                 email: data.email,
-                role: data.role,
-                status: data.status,
+                role: data.role as UserRole,
+                status: data.status as UserStatus,
                 start_date: data.start_date,
                 end_date: data.end_date
               };
@@ -96,8 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const userProfile: User = {
                 id: data.session.user.id,
                 email: profileData.email,
-                role: profileData.role,
-                status: profileData.status,
+                role: profileData.role as UserRole,
+                status: profileData.status as UserStatus,
                 start_date: profileData.start_date,
                 end_date: profileData.end_date
               };

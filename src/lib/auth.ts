@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { User, UserRole } from "@/types";
+import { User, UserRole, UserStatus } from "@/types";
 
 export const login = async (email: string, password: string): Promise<{ user: User | null; error: string | null }> => {
   try {
@@ -49,7 +49,7 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       id: data.user.id,
       email: profileData.email,
       role: profileData.role as UserRole,
-      status: profileData.status,
+      status: profileData.status as UserStatus,
       start_date: profileData.start_date,
       end_date: profileData.end_date
     };
@@ -183,7 +183,7 @@ export const createUser = async (email: string, password: string, userData: Omit
         return manualProfile ? {
           ...manualProfile,
           role: manualProfile.role as UserRole,
-          status: manualProfile.status,
+          status: manualProfile.status as UserStatus,
         } : null;
       }
       
@@ -193,7 +193,7 @@ export const createUser = async (email: string, password: string, userData: Omit
     return profile ? {
       ...profile,
       role: profile.role as UserRole,
-      status: profile.status,
+      status: profile.status as UserStatus,
     } : null;
   } catch (error) {
     console.error("Error in createUser:", error);
