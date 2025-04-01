@@ -13,7 +13,8 @@ const options = {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'websauce_supabase_auth'
   },
   global: {
     headers: {

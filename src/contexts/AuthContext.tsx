@@ -25,41 +25,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // First, set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log("Auth state change:", event, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Fetch user profile only if not already done in login function
-          if (!user) {
-            try {
-              // Get the user profile
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error || !data) {
-                console.error("Failed to fetch user profile after auth state change:", error);
-                return;
-              }
-              
-              const userProfile: User = {
-                id: session.user.id,
-                email: data.email,
-                role: data.role as UserRole,
-                status: data.status as UserStatus,
-                start_date: data.start_date,
-                end_date: data.end_date
-              };
-              
-              setUser(userProfile);
-              localStorage.setItem("websauce_user", JSON.stringify(userProfile));
-              localStorage.setItem("websauce_session", JSON.stringify(session));
-            } catch (error) {
-              console.error("Error fetching user profile:", error);
-            }
-          }
+          // Don't set loading true here, handle it in the fetchUserProfile function
+          setTimeout(() => {
+            fetchUserProfile(session);
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
           setUser(null);
@@ -69,7 +42,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     
-    // Then check current session
+    // Function to fetch user profile
+    const fetchUserProfile = async (session: Session) => {
+      try {
+        // Check if we already have the user in state
+        if (user && user.id === session.user.id) {
+          setLoading(false);
+          return;
+        }
+        
+        // Get the user profile
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Failed to fetch user profile:", error);
+          setLoading(false);
+          return;
+        }
+        
+        if (data) {
+          const userProfile: User = {
+            id: session.user.id,
+            email: data.email,
+            role: data.role as UserRole,
+            status: data.status as UserStatus,
+            start_date: data.start_date,
+            end_date: data.end_date
+          };
+          
+          setUser(userProfile);
+          localStorage.setItem("websauce_user", JSON.stringify(userProfile));
+          localStorage.setItem("websauce_session", JSON.stringify(session));
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        setLoading(false);
+      }
+    };
+    
+    // Check current session
     const checkSession = async () => {
       try {
         // First check local storage for user info
@@ -84,39 +101,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data?.session) {
           console.log("Valid session found:", data.session.user.id);
           
-          if (!storedUser) {
-            // If we have a session but no stored user, fetch profile
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.session.user.id)
-              .single();
-              
-            if (profileData) {
-              const userProfile: User = {
-                id: data.session.user.id,
-                email: profileData.email,
-                role: profileData.role as UserRole,
-                status: profileData.status as UserStatus,
-                start_date: profileData.start_date,
-                end_date: profileData.end_date
-              };
-              
-              setUser(userProfile);
-              localStorage.setItem("websauce_user", JSON.stringify(userProfile));
-              localStorage.setItem("websauce_session", JSON.stringify(data.session));
-            }
-          }
-        } else if (storedUser) {
-          // If we have no valid session but have a stored user, clear it
-          console.log("No valid session but user in storage, clearing");
+          // We have a valid session, fetch user profile
+          setTimeout(() => {
+            fetchUserProfile(data.session);
+          }, 0);
+        } else {
+          // No valid session
+          console.log("No valid session found");
           setUser(null);
           localStorage.removeItem("websauce_user");
           localStorage.removeItem("websauce_session");
+          setLoading(false);
         }
       } catch (error) {
         console.error("Session check error:", error);
-      } finally {
         setLoading(false);
       }
     };
