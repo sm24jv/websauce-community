@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,12 +23,16 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
+      console.log("Attempting login:", email);
       await login(email, password);
+      console.log("Login successful, navigating to:", from);
       navigate(from, { replace: true });
-    } catch (error) {
-      console.error("Login failed:", error);
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(err.message || "Login failed. Please check your credentials.");
     } finally {
       setIsSubmitting(false);
     }
@@ -43,6 +50,14 @@ const Login: React.FC = () => {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
+          {error && (
+            <div className="px-6 pb-2">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">

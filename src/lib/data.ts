@@ -307,6 +307,7 @@ export const deleteChapter = async (id: string): Promise<boolean> => {
 // User-related functions
 export const getUsers = async (): Promise<User[]> => {
   try {
+    console.log("Fetching users");
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -314,7 +315,7 @@ export const getUsers = async (): Promise<User[]> => {
     
     if (error) {
       console.error("Error fetching users:", error);
-      return [];
+      throw error;
     }
     
     // Transform the role and status from string to their respective types
@@ -325,12 +326,13 @@ export const getUsers = async (): Promise<User[]> => {
     }));
   } catch (error) {
     console.error("Unexpected error fetching users:", error);
-    return [];
+    throw error;
   }
 };
 
 export const getUser = async (id: string): Promise<User | null> => {
   try {
+    console.log("Fetching user:", id);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -339,7 +341,7 @@ export const getUser = async (id: string): Promise<User | null> => {
     
     if (error) {
       console.error("Error fetching user:", error);
-      return null;
+      throw error;
     }
     
     // Transform the role and status from string to their respective types
@@ -350,56 +352,24 @@ export const getUser = async (id: string): Promise<User | null> => {
     } : null;
   } catch (error) {
     console.error("Unexpected error fetching user:", error);
-    return null;
+    throw error;
   }
 };
 
+// Use the auth library's createUser instead of direct database manipulation
 export const createUser = async (email: string, password: string, userData: Omit<User, 'id' | 'email'>): Promise<User | null> => {
   try {
-    // Create user in auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        role: userData.role,
-        status: userData.status,
-        start_date: userData.start_date,
-        end_date: userData.end_date
-      }
-    });
-
-    if (authError || !authData.user) {
-      console.error("Error creating user in auth:", authError);
-      return null;
-    }
-
-    // The profile should be created automatically by the trigger
-    // We'll just fetch it to confirm and return
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error fetching created user profile:", profileError);
-      return null;
-    }
-
-    return profile ? {
-      ...profile,
-      role: profile.role as UserRole,
-      status: profile.status as UserStatus
-    } : null;
+    // Use the auth.ts implementation which handles both auth and profile creation
+    return await import('@/lib/auth').then(auth => auth.createUser(email, password, userData));
   } catch (error) {
-    console.error("Error in createUser:", error);
-    return null;
+    console.error("Error in createUser data.ts:", error);
+    throw error;
   }
 };
 
 export const updateUser = async (id: string, userData: Partial<User>): Promise<User | null> => {
   try {
+    console.log("Updating user:", id, userData);
     const { data, error } = await supabase
       .from('profiles')
       .update(userData)
@@ -409,7 +379,7 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     
     if (error) {
       console.error("Error updating user:", error);
-      return null;
+      throw error;
     }
     
     // Transform the role and status from string to their respective types
@@ -420,23 +390,29 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     } : null;
   } catch (error) {
     console.error("Error in updateUser:", error);
-    return null;
+    throw error;
   }
 };
 
 export const deleteUser = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.auth.admin.deleteUser(id);
+    console.log("Deleting user:", id);
+    // We can't use admin API from the browser
+    // Instead, mark the user as deleted
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status: 'deleted' })
+      .eq('id', id);
     
     if (error) {
       console.error("Error deleting user:", error);
-      return false;
+      throw error;
     }
     
     return true;
   } catch (error) {
     console.error("Error in deleteUser:", error);
-    return false;
+    throw error;
   }
 };
 

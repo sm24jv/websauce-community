@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addYears } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserFormData {
   email: string;
@@ -46,7 +47,7 @@ const UserForm: React.FC = () => {
   }, [isEditMode, setValue]);
   
   // Fetch user data if in edit mode
-  const { data: user } = useQuery({
+  const { data: user, isError: isUserError, error: userError } = useQuery({
     queryKey: ['user', userId],
     queryFn: () => getUser(userId!),
     enabled: isEditMode,
@@ -71,6 +72,7 @@ const UserForm: React.FC = () => {
   // Create user mutation
   const createMutation = useMutation({
     mutationFn: (data: UserFormData) => {
+      console.log("Creating user with data:", data);
       return createUser(
         data.email, 
         data.password!, 
@@ -82,7 +84,8 @@ const UserForm: React.FC = () => {
         }
       );
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("User created successfully:", data);
       toast({
         title: "Success",
         description: "User created successfully",
@@ -90,10 +93,11 @@ const UserForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       navigate("/admin/users");
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Failed to create user:", error);
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: "Failed to create user. Check the console for details.",
         variant: "destructive",
       });
     }
@@ -101,8 +105,12 @@ const UserForm: React.FC = () => {
   
   // Update user mutation
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<User>) => updateUser(userId!, data),
-    onSuccess: () => {
+    mutationFn: (data: Partial<User>) => {
+      console.log("Updating user with data:", data);
+      return updateUser(userId!, data);
+    },
+    onSuccess: (data) => {
+      console.log("User updated successfully:", data);
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -111,16 +119,19 @@ const UserForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
       navigate("/admin/users");
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Failed to update user:", error);
       toast({
         title: "Error",
-        description: "Failed to update user",
+        description: "Failed to update user. Check the console for details.",
         variant: "destructive",
       });
     }
   });
   
   const onSubmit = (data: UserFormData) => {
+    console.log("Form submitted with data:", data);
+    
     if (isEditMode) {
       const updateData: Partial<User> = {
         role: data.role,
@@ -159,6 +170,18 @@ const UserForm: React.FC = () => {
             <span>Back to Users</span>
           </Button>
         </div>
+        
+        {(isUserError || createMutation.isError || updateMutation.isError) && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {isUserError ? "Failed to load user data. " : ""}
+              {createMutation.isError ? "Failed to create user. " : ""}
+              {updateMutation.isError ? "Failed to update user. " : ""}
+              Please check your connection and permissions. Open the console for more details.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
