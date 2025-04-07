@@ -1,4 +1,4 @@
-import { Course, Week, Chapter, User } from "@/types";
+import { Course, Week, Chapter, User, PlatformSettings } from "@/types";
 import { FirebaseUtils } from "@/integrations/firebase";
 
 // Define collection names for consistency
@@ -6,7 +6,45 @@ const COLLECTIONS = {
   USERS: 'users',
   COURSES: 'courses',
   WEEKS: 'weeks',
-  CHAPTERS: 'chapters'
+  CHAPTERS: 'chapters',
+  SETTINGS: 'settings'
+};
+
+// Define a constant for the settings document ID
+const PLATFORM_SETTINGS_DOC_ID = 'platform';
+
+// --- Platform Settings Functions --- //
+
+export const getPlatformSettings = async (): Promise<PlatformSettings | null> => {
+  try {
+    console.log("Fetching platform settings from Firestore");
+    const settingsDoc = await FirebaseUtils.getDocument<PlatformSettings>(COLLECTIONS.SETTINGS, PLATFORM_SETTINGS_DOC_ID);
+    
+    return settingsDoc;
+
+  } catch (error) {
+    console.error("Error fetching platform settings:", error);
+    return null; // Return null on error
+  }
+};
+
+export const updatePlatformSettings = async (settingsData: Partial<Omit<PlatformSettings, 'createdAt' | 'updatedAt'>>): Promise<boolean> => {
+  try {
+    console.log("Updating platform settings in Firestore", settingsData);
+    await FirebaseUtils.updateDocument(COLLECTIONS.SETTINGS, PLATFORM_SETTINGS_DOC_ID, settingsData);
+    return true;
+  } catch (error) {
+    console.error("Error updating platform settings:", error);
+    try {
+       console.log("Update failed, attempting to create/set platform settings document...");
+       await FirebaseUtils.createDocumentWithId(COLLECTIONS.SETTINGS, PLATFORM_SETTINGS_DOC_ID, settingsData);
+       console.log("Platform settings document created/set successfully.");
+       return true;
+    } catch (setError) {
+       console.error("Error creating/setting platform settings document after update failed:", setError);
+       return false;
+    }
+  }
 };
 
 // --- Course Functions --- //

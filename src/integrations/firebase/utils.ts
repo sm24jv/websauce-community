@@ -17,7 +17,8 @@ import {
   updateDoc, 
   deleteDoc, 
   setDoc,
-  serverTimestamp 
+  serverTimestamp,
+  DocumentData
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { User, UserRole, UserStatus } from '@/types';
@@ -107,12 +108,12 @@ export const createDocumentWithId = async (collectionName: string, id: string, d
   return id;
 };
 
-export const getDocument = async (collectionName: string, id: string) => {
+export const getDocument = async <T extends DocumentData>(collectionName: string, id: string): Promise<(T & { id: string }) | null> => {
   const docRef = doc(db, collectionName, id);
   const docSnap = await getDoc(docRef);
   
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() };
+    return { id: docSnap.id, ...(docSnap.data() as T) };
   }
   
   return null;

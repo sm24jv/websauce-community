@@ -54,3 +54,25 @@ export interface Chapter {
 //   token: string;
 //   expires_at: string; // ISO date string
 // }
+
+// Corresponds to a document (e.g., 'platform') in the 'settings' collection
+export interface PlatformSettings {
+  // General Tab
+  platform_name: string;
+  admin_email: string;
+  timezone: string;
+  date_format: string;
+  // Email Tab
+  email_from: string;
+  email_sender_name: string;
+  welcome_subject: string;
+  welcome_template: string;
+  // Appearance Tab
+  primary_color: string;
+  secondary_color: string;
+  logo_url: string;
+  favicon_url: string;
+  // Timestamps (Optional)
+  createdAt?: any;
+  updatedAt?: any;
+}
