@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -16,9 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ChapterFormData {
   title: string;
-  thumbnail_url: string;
   video_url: string;
-  description: string;
+  content: string;
   pdf_url?: string;
 }
 
@@ -50,9 +48,8 @@ const ChapterForm: React.FC = () => {
     if (chapter) {
       reset({
         title: chapter.title,
-        thumbnail_url: chapter.thumbnail_url,
         video_url: chapter.video_url,
-        description: chapter.description,
+        content: chapter.content,
         pdf_url: chapter.pdf_url
       });
     }
@@ -144,7 +141,7 @@ const ChapterForm: React.FC = () => {
           <CardHeader>
             <CardTitle>
               {isEditMode ? "Edit Chapter" : "Create New Chapter"}
-              {week && <span className="text-gray-500 ml-2 text-sm">for Week {week.index} - {week.title}</span>}
+              {week && <span className="text-gray-500 ml-2 text-sm">for Week {week.week_number} - {week.title}</span>}
             </CardTitle>
           </CardHeader>
           {isLoading ? (
@@ -166,16 +163,6 @@ const ChapterForm: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                  <Input
-                    id="thumbnail_url"
-                    placeholder="Enter thumbnail URL"
-                    {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
-                  />
-                  {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
                   <Label htmlFor="video_url">Video URL</Label>
                   <Input
                     id="video_url"
@@ -186,14 +173,14 @@ const ChapterForm: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="content">Content/Description</Label>
                   <Textarea
-                    id="description"
-                    placeholder="Enter chapter description"
+                    id="content"
+                    placeholder="Enter chapter content/description"
                     className="h-32"
-                    {...register("description", { required: "Description is required" })}
+                    {...register("content", { required: "Content is required" })}
                   />
-                  {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
+                  {errors.content && <p className="text-red-500 text-sm">{errors.content.message}</p>}
                 </div>
                 
                 <div className="space-y-2">

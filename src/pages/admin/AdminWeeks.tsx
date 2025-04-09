@@ -1,9 +1,8 @@
-
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Week } from "@/types";
 import { getCourse, getWeeksForCourse, deleteWeek } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
@@ -67,7 +66,7 @@ const AdminWeeks: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -133,9 +132,9 @@ const AdminWeeks: React.FC = () => {
                   ) : weeks.length > 0 ? (
                     weeks.map((week) => (
                       <TableRow key={week.id}>
-                        <TableCell>{week.index}</TableCell>
+                        <TableCell>{week.week_number}</TableCell>
                         <TableCell className="font-medium">{week.title}</TableCell>
-                        <TableCell className="truncate max-w-xs">{week.short_description}</TableCell>
+                        <TableCell className="truncate max-w-xs">{week.description}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button 

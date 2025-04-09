@@ -7,8 +7,8 @@ export interface User {
   email: string;
   role: UserRole;
   status: UserStatus;
-  start_date: string; // ISO date string
-  end_date: string;   // ISO date string
+  start_date?: string; // ISO date string - Optional for admins
+  end_date?: string;   // ISO date string - Optional for admins
   createdAt?: any;    // Firestore Server Timestamp (optional on client)
   updatedAt?: any;    // Firestore Server Timestamp (optional on client)
 }

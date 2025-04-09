@@ -74,7 +74,7 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4">
-      <Card className="w-full max-w-md animate-fade-in border-t-4 border-websauce-600 shadow-xl overflow-hidden rounded-lg">
+      <Card className="w-full max-w-md animate-fade-in border-t-4 border-theme-secondary shadow-xl overflow-hidden rounded-lg">
         <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
            <Link to="/">
             <img
@@ -143,7 +143,7 @@ const RegisterPage: React.FC = () => {
           <CardFooter className="bg-gray-50 p-6 flex flex-col gap-4 border-t">
             <Button
               type="submit"
-              className="w-full bg-websauce-600 hover:bg-websauce-700 text-white transition duration-150 ease-in-out disabled:opacity-75"
+              className="w-full bg-theme-primary hover:opacity-90 text-white transition duration-150 ease-in-out disabled:opacity-75"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

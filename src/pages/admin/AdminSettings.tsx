@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,7 +94,7 @@ const AdminSettings: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -269,6 +269,7 @@ const AdminSettings: React.FC = () => {
               <div className="mt-6 flex justify-end">
                 <Button 
                   type="submit" 
+                  className="bg-theme-primary hover:opacity-90 text-white"
                   disabled={mutation.isPending || !isDirty}
                 >
                   {mutation.isPending ? (

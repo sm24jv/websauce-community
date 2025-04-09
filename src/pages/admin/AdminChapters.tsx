@@ -1,8 +1,7 @@
-
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getWeek, getChaptersForWeek, deleteChapter } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
@@ -57,7 +56,7 @@ const AdminChapters: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -77,7 +76,7 @@ const AdminChapters: React.FC = () => {
           <>
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Chapters for: Week {week.index} - {week.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Chapters for: Week {week.week_number} - {week.title}</h1>
                 <p className="text-gray-500 mt-1">Manage the chapters for this week</p>
               </div>
               <Button 

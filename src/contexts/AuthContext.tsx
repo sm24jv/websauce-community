@@ -37,32 +37,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("Firestore Profile Received:", userProfile);
 
           if (userProfile) {
-            // Check status and dates before setting user
+            // Check status (applies to all)
             if (userProfile.status !== "active") {
               console.warn("User account is not active:", userProfile.id);
               toast({ title: "Account Inactive", description: "Your account is not active. Please contact an administrator.", variant: "destructive" });
               await authLogout(); // Sign out user from Firebase and clear local storage
               setUser(null);
             } else {
-              const now = new Date();
-              const startDate = new Date(userProfile.start_date);
-              const endDate = new Date(userProfile.end_date);
-              if (now < startDate || now > endDate) {
-                console.warn("User membership is not valid for today:", userProfile.id);
-                toast({ title: "Membership Invalid", description: "Your membership is not active for the current date.", variant: "destructive" });
-                await authLogout();
-                setUser(null);
+              // Check dates ONLY if not admin
+              let datesValid = true; // Assume valid for admin
+              if (userProfile.role !== 'admin') {
+                 if (!userProfile.start_date || !userProfile.end_date) {
+                     console.warn("User missing required start/end dates:", userProfile.id);
+                     toast({ title: "Profile Error", description: "Membership date information is missing. Please contact support.", variant: "destructive" });
+                     datesValid = false;
+                 } else {
+                    const now = new Date();
+                    const startDate = new Date(userProfile.start_date);
+                    const endDate = new Date(userProfile.end_date);
+                    if (now < startDate || now > endDate) {
+                      console.warn("User membership is not valid for today:", userProfile.id);
+                      toast({ title: "Membership Invalid", description: "Your membership is not active for the current date.", variant: "destructive" });
+                      datesValid = false;
+                    }
+                 }
+              }
+
+              if (datesValid) {
+                  console.log("Setting application user:", userProfile.id);
+                  setUser(userProfile);
+                  localStorage.setItem("websauce_user", JSON.stringify(userProfile));
               } else {
-                console.log("Setting application user:", userProfile.id);
-                setUser(userProfile);
-                localStorage.setItem("websauce_user", JSON.stringify(userProfile));
+                  // Dates invalid for non-admin, log out
+                  await authLogout();
+                  setUser(null);
               }
             }
           } else {
             console.warn("User profile not found in Firestore for logged-in Firebase user:", fbUser.uid);
             // Optional: Sign out the user if their profile is missing?
             // await authLogout();
-            // setUser(null);
             // toast({ title: "Profile Error", description: "Could not load user profile. Please contact support.", variant: "destructive" });
             setUser(null); // Ensure app user is null if profile is missing
             localStorage.removeItem("websauce_user");

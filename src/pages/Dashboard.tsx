@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourses } from "@/lib/data";
 import { Course } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { CalendarDays } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +33,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -85,7 +84,7 @@ const Dashboard: React.FC = () => {
                   <Card className="course-card h-full transition-all border border-gray-200 hover:border-websauce-300">
                     <div className="aspect-video w-full overflow-hidden rounded-t-lg">
                       <img 
-                        src={course.thumbnail_url} 
+                        src={course.thumbnail}
                         alt={course.title}
                         className="w-full h-full object-cover"
                       />

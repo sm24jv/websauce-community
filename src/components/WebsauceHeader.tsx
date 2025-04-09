@@ -1,20 +1,24 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 
 const WebsauceHeader: React.FC = () => {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
+
+  const logoUrl = settings?.logo_url || "https://websauce.be/wp-content/themes/websauce/dist/images/logo.svg";
+  const platformName = settings?.platform_name || "Websauce Community";
 
   return (
     <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <img 
-            src="https://websauce.be/wp-content/themes/websauce/dist/images/logo.svg" 
-            alt="Websauce Logo" 
-            className="h-10" 
+            src={logoUrl} 
+            alt={`${platformName} Logo`} 
+            className="h-10 max-h-10 object-contain"
           />
         </Link>
         
@@ -26,7 +30,7 @@ const WebsauceHeader: React.FC = () => {
                   Dashboard
                 </Link>
                 {user.role === 'admin' && (
-                  <Link to="/admin/courses" className="text-gray-700 hover:text-websauce-600 transition-colors">
+                  <Link to="/admin" className="text-gray-700 hover:text-websauce-600 transition-colors">
                     Admin
                   </Link>
                 )}

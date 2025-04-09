@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { getUser, updateUser } from "@/lib/data";
 import { createUser } from "@/lib/auth";
 import { User, UserRole, UserStatus } from "@/types";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,18 +33,24 @@ const UserForm: React.FC = () => {
   
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<UserFormData>();
   
-  // Set default dates for new users
+  // Watch the role field to conditionally disable dates
+  const selectedRole = watch("role");
+  const isAdminSelected = selectedRole === 'admin';
+
+  // Set default dates for new users (if not admin)
   useEffect(() => {
-    if (!isEditMode) {
+    if (!isEditMode && !isAdminSelected) { // Only set default dates for new non-admins
       const today = new Date();
       const nextYear = addYears(today, 1);
-      
       setValue('start_date', format(today, 'yyyy-MM-dd'));
       setValue('end_date', format(nextYear, 'yyyy-MM-dd'));
-      setValue('role', 'user');
-      setValue('status', 'active');
     }
-  }, [isEditMode, setValue]);
+    // Clear dates if admin is selected for a new user
+    if (!isEditMode && isAdminSelected) {
+        setValue('start_date', '');
+        setValue('end_date', '');
+    }
+  }, [isEditMode, isAdminSelected, setValue]);
   
   // Fetch user data if in edit mode
   const { data: user, isError: isUserError, error: userError } = useQuery({
@@ -56,16 +62,17 @@ const UserForm: React.FC = () => {
   // Set form values when user data is loaded
   useEffect(() => {
     if (user) {
-      const startDate = new Date(user.start_date);
-      const endDate = new Date(user.end_date);
-      
-      reset({
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd')
-      });
+        // Format dates only if they exist
+        const formattedStartDate = user.start_date ? format(new Date(user.start_date), 'yyyy-MM-dd') : '';
+        const formattedEndDate = user.end_date ? format(new Date(user.end_date), 'yyyy-MM-dd') : '';
+        
+        reset({
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            start_date: formattedStartDate,
+            end_date: formattedEndDate
+        });
     }
   }, [user, reset]);
   
@@ -73,15 +80,19 @@ const UserForm: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (data: UserFormData) => {
       console.log("Creating user with data:", data);
+      const profileData: Omit<User, 'id' | 'email'> = {
+          role: data.role,
+          status: data.status,
+          // Only include dates if role is not admin
+          ...(data.role !== 'admin' && {
+              start_date: new Date(data.start_date).toISOString(),
+              end_date: new Date(data.end_date).toISOString()
+          })
+      };
       return createUser(
         data.email, 
         data.password!, 
-        {
-          role: data.role,
-          status: data.status,
-          start_date: new Date(data.start_date).toISOString(),
-          end_date: new Date(data.end_date).toISOString()
-        }
+        profileData
       );
     },
     onSuccess: (data) => {
@@ -106,7 +117,7 @@ const UserForm: React.FC = () => {
   // Update user mutation
   const updateMutation = useMutation({
     mutationFn: (data: Partial<User>) => {
-      console.log("Updating user with data:", data);
+      console.log("Updating user profile with data:", data);
       return updateUser(userId!, data);
     },
     onSuccess: (data) => {
@@ -132,32 +143,44 @@ const UserForm: React.FC = () => {
   const onSubmit = (data: UserFormData) => {
     console.log("Form submitted with data:", data);
     
-    if (isEditMode) {
-      const updateData: Partial<User> = {
+    let submitData: Partial<User> = {
         role: data.role,
         status: data.status,
-        start_date: new Date(data.start_date).toISOString(),
-        end_date: new Date(data.end_date).toISOString()
-      };
-      
-      updateMutation.mutate(updateData);
+    };
+
+    if (data.role !== 'admin') {
+        // Validate and add dates only for non-admins
+        if (!data.start_date || !data.end_date) {
+            toast({ title: "Error", description: "Start and End dates are required for non-admin users.", variant: "destructive" });
+            return;
+        }
+        submitData.start_date = new Date(data.start_date).toISOString();
+        submitData.end_date = new Date(data.end_date).toISOString();
+    } else {
+        // Ensure dates are explicitly removed or set to null/undefined for admins
+        // Depending on how updateUser handles undefined vs null
+        submitData.start_date = undefined; // Or null, depending on Firestore rules/needs
+        submitData.end_date = undefined;   // Or null
+    }
+
+    if (isEditMode) {
+      console.log("Submitting update data:", submitData);
+      updateMutation.mutate(submitData);
     } else {
       if (!data.password) {
-        toast({
-          title: "Error",
-          description: "Password is required for new users",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Password is required for new users", variant: "destructive" });
         return;
       }
-      
-      createMutation.mutate(data);
+      // Pass the full form data (including password) to createMutation
+      // The mutationFn will handle extracting profile data correctly
+      console.log("Submitting create data:", data); 
+      createMutation.mutate(data); 
     }
   };
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -258,7 +281,11 @@ const UserForm: React.FC = () => {
                 <Input
                   id="start_date"
                   type="date"
-                  {...register("start_date", { required: "Start date is required" })}
+                  {...register("start_date", { 
+                      required: !isAdminSelected ? "Start date is required for users" : false 
+                  })}
+                  disabled={isAdminSelected} // Disable if admin role is selected
+                  className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""} // Optional visual cue
                 />
                 {errors.start_date && <p className="text-red-500 text-sm">{errors.start_date.message}</p>}
               </div>
@@ -268,7 +295,11 @@ const UserForm: React.FC = () => {
                 <Input
                   id="end_date"
                   type="date"
-                  {...register("end_date", { required: "End date is required" })}
+                  {...register("end_date", { 
+                      required: !isAdminSelected ? "End date is required for users" : false 
+                  })}
+                  disabled={isAdminSelected} // Disable if admin role is selected
+                  className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""} // Optional visual cue
                 />
                 {errors.end_date && <p className="text-red-500 text-sm">{errors.end_date.message}</p>}
               </div>

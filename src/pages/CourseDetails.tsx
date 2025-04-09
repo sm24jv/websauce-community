@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourse, getAvailableWeeks } from "@/lib/data";
 import { Course, Week } from "@/types";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronLeft, Lock } from "lucide-react";
@@ -28,20 +27,30 @@ const CourseDetails: React.FC = () => {
       setCourse(courseData);
       
       if (user) {
-        const userAvailableWeeks = await getAvailableWeeks(courseId, user.start_date);
-        setAvailableWeeks(userAvailableWeeks);
-        
+        // Fetch all weeks data once, regardless of role
         const allWeeksData = await getAvailableWeeks(courseId, new Date(0).toISOString());
         setAllWeeks(allWeeksData);
-        
-        // Calculate locked weeks
-        const locked = allWeeksData.filter(
-          week => !userAvailableWeeks.some(availableWeek => availableWeek.id === week.id)
-        );
-        setLockedWeeks(locked);
+
+        if (user.role === 'admin') {
+          // Admin sees all weeks as available
+          setAvailableWeeks(allWeeksData);
+          setLockedWeeks([]);
+        } else {
+          // Regular user: filter based on start_date
+          const userAvailableWeeks = await getAvailableWeeks(courseId, user.start_date);
+          setAvailableWeeks(userAvailableWeeks);
+          
+          // Calculate locked weeks
+          const locked = allWeeksData.filter(
+            week => !userAvailableWeeks.some(availableWeek => availableWeek.id === week.id)
+          );
+          setLockedWeeks(locked);
+        }
       } else {
+        // Non-logged in user sees no available weeks
         const allWeeksData = await getAvailableWeeks(courseId, new Date(0).toISOString());
         setAllWeeks(allWeeksData);
+        setAvailableWeeks([]); // Set available to empty for non-logged-in
         setLockedWeeks(allWeeksData);
       }
       
@@ -58,7 +67,7 @@ const CourseDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
+        <WebsauceHeader />
         <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="animate-pulse text-websauce-500">Loading...</div>
         </div>
@@ -72,7 +81,7 @@ const CourseDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -87,7 +96,7 @@ const CourseDetails: React.FC = () => {
             <div className="md:w-1/3">
               <div className="rounded-lg overflow-hidden">
                 <img 
-                  src={course.thumbnail_url} 
+                  src={course.thumbnail}
                   alt={course.title}
                   className="w-full h-full object-cover"
                 />
@@ -117,7 +126,7 @@ const CourseDetails: React.FC = () => {
                     <div className="flex flex-col md:flex-row">
                       <div className="md:w-1/4 aspect-video md:aspect-square overflow-hidden rounded-t-lg md:rounded-l-lg md:rounded-tr-none">
                         <img 
-                          src={week.thumbnail_url} 
+                          src={week.thumbnail}
                           alt={week.title}
                           className="w-full h-full object-cover"
                         />
@@ -125,11 +134,11 @@ const CourseDetails: React.FC = () => {
                       <div className="md:w-3/4 flex flex-col">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-xl group-hover:text-websauce-600 transition-colors">
-                            Week {week.index}: {week.title}
+                            Week {week.week_number}: {week.title}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow pb-2">
-                          <CardDescription>{week.short_description}</CardDescription>
+                          <CardDescription>{week.description}</CardDescription>
                         </CardContent>
                         <CardFooter>
                           <Button variant="ghost" className="text-websauce-600 p-0 hover:text-websauce-700 hover:bg-transparent">
@@ -156,7 +165,7 @@ const CourseDetails: React.FC = () => {
                     <div className="flex flex-col md:flex-row">
                       <div className="md:w-1/4 aspect-video md:aspect-square overflow-hidden rounded-t-lg md:rounded-l-lg md:rounded-tr-none bg-gray-200 relative">
                         <img 
-                          src={week.thumbnail_url} 
+                          src={week.thumbnail}
                           alt={week.title}
                           className="w-full h-full object-cover filter grayscale"
                         />
@@ -167,16 +176,16 @@ const CourseDetails: React.FC = () => {
                       <div className="md:w-3/4 flex flex-col">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-xl text-gray-500">
-                            Week {week.index}: {week.title}
+                            Week {week.week_number}: {week.title}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="flex-grow pb-2">
-                          <CardDescription>{week.short_description}</CardDescription>
+                          <CardDescription>{week.description}</CardDescription>
                         </CardContent>
                         <CardFooter>
                           <div className="text-sm text-muted-foreground flex items-center">
                             <Lock size={14} className="mr-1" />
-                            <span>Unlocks in {7 * (week.index - availableWeeks.length)} days</span>
+                            <span>Unlocks in {Math.max(0, 7 * (week.week_number - availableWeeks.length))} days</span>
                           </div>
                         </CardFooter>
                       </div>

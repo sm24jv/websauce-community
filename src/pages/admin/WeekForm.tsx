@@ -1,8 +1,8 @@
-
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { getCourse, getWeek, createWeek, updateWeek, getWeeksForCourse } from "@/lib/data";
+import { Week } from "@/types";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 interface WeekFormData {
   title: string;
-  thumbnail_url: string;
-  short_description: string;
-  index: number;
+  thumbnail: string;
+  description: string;
+  week_number: number;
 }
 
 const WeekForm: React.FC = () => {
@@ -46,7 +47,7 @@ const WeekForm: React.FC = () => {
   });
   
   // Fetch week data if in edit mode
-  const { data: week, isLoading: isLoadingWeek } = useQuery({
+  const { data: week, isLoading: isLoadingWeek } = useQuery<Week | null>({
     queryKey: ['week', weekId],
     queryFn: () => getWeek(weekId!),
     enabled: isEditMode,
@@ -57,14 +58,14 @@ const WeekForm: React.FC = () => {
     if (week) {
       reset({
         title: week.title,
-        thumbnail_url: week.thumbnail_url,
-        short_description: week.short_description,
-        index: week.index
+        thumbnail: week.thumbnail,
+        description: week.description,
+        week_number: week.week_number
       });
     } else if (!isEditMode && weeks.length >= 0) {
       // For new weeks, set the next available index
-      const maxIndex = weeks.length > 0 ? Math.max(...weeks.map(w => w.index)) : 0;
-      setValue('index', maxIndex + 1);
+      const maxIndex = weeks.length > 0 ? Math.max(...weeks.map(w => w.week_number)) : 0;
+      setValue('week_number', maxIndex + 1);
     }
   }, [week, weeks, isEditMode, reset, setValue]);
   
@@ -114,11 +115,14 @@ const WeekForm: React.FC = () => {
     }
   });
   
+  // Modified onSubmit function
   const onSubmit = (data: WeekFormData) => {
     if (isEditMode) {
       updateMutation.mutate(data);
     } else {
-      createMutation.mutate(data);
+      // Pass only 'data' (WeekFormData) to mutate.
+      // The mutationFn handles adding course_id.
+      createMutation.mutate(data); 
     }
   };
 
@@ -166,17 +170,17 @@ const WeekForm: React.FC = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="index">Week Number</Label>
+                  <Label htmlFor="week_number">Week Number</Label>
                   <Input
-                    id="index"
+                    id="week_number"
                     type="number"
-                    {...register("index", { 
+                    {...register("week_number", { 
                       required: "Week number is required",
                       valueAsNumber: true,
                       min: { value: 1, message: "Week number must be at least 1" } 
                     })}
                   />
-                  {errors.index && <p className="text-red-500 text-sm">{errors.index.message}</p>}
+                  {errors.week_number && <p className="text-red-500 text-sm">{errors.week_number.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
@@ -190,24 +194,24 @@ const WeekForm: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
+                  <Label htmlFor="thumbnail">Thumbnail URL</Label>
                   <Input
-                    id="thumbnail_url"
+                    id="thumbnail"
                     placeholder="Enter thumbnail URL"
-                    {...register("thumbnail_url", { required: "Thumbnail URL is required" })}
+                    {...register("thumbnail", { required: "Thumbnail URL is required" })}
                   />
-                  {errors.thumbnail_url && <p className="text-red-500 text-sm">{errors.thumbnail_url.message}</p>}
+                  {errors.thumbnail && <p className="text-red-500 text-sm">{errors.thumbnail.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="short_description">Short Description</Label>
+                  <Label htmlFor="description">Short Description</Label>
                   <Textarea
-                    id="short_description"
+                    id="description"
                     placeholder="Enter short description"
                     className="h-24"
-                    {...register("short_description", { required: "Description is required" })}
+                    {...register("description", { required: "Description is required" })}
                   />
-                  {errors.short_description && <p className="text-red-500 text-sm">{errors.short_description.message}</p>}
+                  {errors.description && <p className="text-red-500 text-sm">{errors.description.message}</p>}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">
@@ -220,15 +224,13 @@ const WeekForm: React.FC = () => {
                 </Button>
                 <Button 
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={isLoading || updateMutation.isPending || createMutation.isPending}
                   className="bg-websauce-600 hover:bg-websauce-700"
                 >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Saving..."
-                    : isEditMode
-                      ? "Update Week"
-                      : "Create Week"
-                  }
+                  {(updateMutation.isPending || createMutation.isPending) ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {isEditMode ? "Update Week" : "Create Week"}
                 </Button>
               </CardFooter>
             </form>

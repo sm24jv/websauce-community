@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { getCourse, getChaptersForWeek, getWeek } from "@/lib/data";
 import { Course, Week, Chapter } from "@/types";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 
@@ -42,7 +41,7 @@ const WeekDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
+        <WebsauceHeader />
         <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="animate-pulse text-websauce-500">Loading...</div>
         </div>
@@ -56,7 +55,7 @@ const WeekDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4">
@@ -71,7 +70,7 @@ const WeekDetails: React.FC = () => {
             <div className="md:w-1/3">
               <div className="rounded-lg overflow-hidden">
                 <img 
-                  src={week.thumbnail_url} 
+                  src={week.thumbnail}
                   alt={week.title}
                   className="w-full h-full object-cover"
                 />
@@ -79,9 +78,9 @@ const WeekDetails: React.FC = () => {
             </div>
             
             <div className="md:w-2/3">
-              <div className="text-sm font-medium text-websauce-600 mb-1">Week {week.index}</div>
+              <div className="text-sm font-medium text-websauce-600 mb-1">Week {week.week_number}</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">{week.title}</h1>
-              <p className="text-gray-600">{week.short_description}</p>
+              <p className="text-gray-600">{week.description}</p>
             </div>
           </div>
         </div>
@@ -100,7 +99,7 @@ const WeekDetails: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-medium">{chapter.title}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-1">{chapter.description.substring(0, 100)}...</p>
+                        <p className="text-sm text-gray-500 line-clamp-1">{chapter.content ? chapter.content.substring(0, 100) + '...' : 'No description'}</p>
                       </div>
                     </div>
                   </Card>

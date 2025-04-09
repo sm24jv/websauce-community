@@ -1,9 +1,8 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Course } from "@/types";
 import { getCourses, deleteCourse } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
@@ -55,7 +54,7 @@ const AdminCourses: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -71,6 +70,7 @@ const AdminCourses: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-[150px]">Actions</TableHead>
@@ -79,6 +79,7 @@ const AdminCourses: React.FC = () => {
               <TableBody>
                 {[1, 2, 3].map((i) => (
                   <TableRow key={`skeleton-${i}`}>
+                    <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                     <TableCell>
@@ -100,6 +101,7 @@ const AdminCourses: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-[150px]">Actions</TableHead>
@@ -109,6 +111,19 @@ const AdminCourses: React.FC = () => {
                 {courses.length > 0 ? (
                   courses.map((course) => (
                     <TableRow key={course.id}>
+                      <TableCell>
+                        {course.thumbnail ? (
+                          <img 
+                            src={course.thumbnail}
+                            alt={course.title}
+                            className="h-12 w-12 object-cover rounded-sm"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 bg-gray-200 rounded-sm flex items-center justify-center text-xs text-gray-500">
+                            No img
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{course.title}</TableCell>
                       <TableCell className="truncate max-w-xs">{course.description}</TableCell>
                       <TableCell>
@@ -143,7 +158,7 @@ const AdminCourses: React.FC = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-6 text-gray-500">
+                    <TableCell colSpan={4} className="text-center py-6 text-gray-500">
                       No courses found. Click "Add New Course" to create one.
                     </TableCell>
                   </TableRow>

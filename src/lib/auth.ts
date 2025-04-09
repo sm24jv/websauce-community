@@ -41,21 +41,31 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       return { user: null, error: "User profile not found. Please contact support." };
     }
 
-    // Check user status and membership validity
+    // Check user status (applies to all roles)
     if (userProfile.status !== "active") {
       await FirebaseUtils.signOut();
       localStorage.removeItem("websauce_user");
       return { user: null, error: "Your account is not active. Please contact an administrator." };
     }
-    const now = new Date();
-    const startDate = new Date(userProfile.start_date);
-    const endDate = new Date(userProfile.end_date);
-    if (now < startDate || now > endDate) {
-      await FirebaseUtils.signOut();
-      localStorage.removeItem("websauce_user");
-      return { user: null, error: "Your membership is not active for the current date." };
-    }
 
+    // Check membership validity ONLY for non-admin users
+    if (userProfile.role !== 'admin') {
+      if (!userProfile.start_date || !userProfile.end_date) {
+          await FirebaseUtils.signOut();
+          localStorage.removeItem("websauce_user");
+          return { user: null, error: "Membership date information is missing. Please contact support." };
+      }
+      const now = new Date();
+      const startDate = new Date(userProfile.start_date);
+      const endDate = new Date(userProfile.end_date);
+      if (now < startDate || now > endDate) {
+        await FirebaseUtils.signOut();
+        localStorage.removeItem("websauce_user");
+        return { user: null, error: "Your membership is not active for the current date." };
+      }
+    }
+    
+    // User is valid (active status, and dates valid if not admin)
     localStorage.setItem("websauce_user", JSON.stringify(userProfile));
     console.log("Full login successful:", userProfile);
     return { user: userProfile, error: null };

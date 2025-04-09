@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { getCourse, createCourse, updateCourse } from "@/lib/data";
+import { Course } from "@/types";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
 
 interface CourseFormData {
   title: string;
-  thumbnail_url: string;
+  thumbnail: string;
   description: string;
 }
 
@@ -39,13 +40,13 @@ const CourseForm: React.FC = () => {
   const form = useForm<CourseFormData>({
     defaultValues: {
       title: "",
-      thumbnail_url: "",
+      thumbnail: "",
       description: ""
     }
   });
   
   // Fetch course data if in edit mode
-  const { data: course, isLoading: isLoadingCourse } = useQuery({
+  const { data: course, isLoading: isLoadingCourse } = useQuery<Course | null>({
     queryKey: ['course', id],
     queryFn: () => getCourse(id!),
     enabled: isEditMode,
@@ -56,78 +57,42 @@ const CourseForm: React.FC = () => {
     if (course) {
       form.reset({
         title: course.title,
-        thumbnail_url: course.thumbnail_url,
+        thumbnail: course.thumbnail,
         description: course.description
       });
     }
   }, [course, form]);
   
-  // Create course mutation
+  // Restore original create/update mutations
   const createMutation = useMutation({
-    mutationFn: async (data: CourseFormData) => {
-      console.log("Creating course with:", data);
-      const newCourse = await createCourse(data);
-      if (!newCourse) {
-        throw new Error("Failed to create course");
-      }
-      return newCourse;
-    },
+    mutationFn: createCourse,
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Course created successfully",
-      });
+      toast({ title: "Success", description: "Course created successfully" });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       navigate("/admin/courses");
     },
     onError: (error: any) => {
-      console.error("Create course error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create course",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to create course", variant: "destructive" });
     }
   });
   
-  // Update course mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: CourseFormData) => {
-      console.log("Updating course with:", data);
-      const updatedCourse = await updateCourse(id!, data);
-      if (!updatedCourse) {
-        throw new Error("Failed to update course");
-      }
-      return updatedCourse;
-    },
+    mutationFn: (data: CourseFormData) => updateCourse(id!, data),
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Course updated successfully",
-      });
+      toast({ title: "Success", description: "Course updated successfully" });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['course', id] });
       navigate("/admin/courses");
     },
     onError: (error: any) => {
-      console.error("Update course error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update course",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to update course", variant: "destructive" });
     }
   });
-  
+
+  // Restore original onSubmit function
   const onSubmit = (data: CourseFormData) => {
-    console.log("Submitting form data:", data);
-    
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "You must be logged in to perform this action.",
-        variant: "destructive",
-      });
+      toast({ title: "Authentication Required", description: "Must be logged in", variant: "destructive" });
       return;
     }
     
@@ -209,7 +174,7 @@ const CourseForm: React.FC = () => {
                   
                   <FormField
                     control={form.control}
-                    name="thumbnail_url"
+                    name="thumbnail"
                     rules={{ required: "Thumbnail URL is required" }}
                     render={({ field }) => (
                       <FormItem>
@@ -248,16 +213,13 @@ const CourseForm: React.FC = () => {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
+                    disabled={isLoadingCourse || updateMutation.isPending || createMutation.isPending}
+                    className="bg-websauce-600 hover:bg-websauce-700"
                   >
-                    {createMutation.isPending || updateMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Course"
-                    )}
+                    {(updateMutation.isPending || createMutation.isPending) ? (
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    {isEditMode ? "Update Course" : "Create Course"}
                   </Button>
                 </CardFooter>
               </form>

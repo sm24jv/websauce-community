@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { getChapter, getCourse, getWeek } from "@/lib/data";
 import { Chapter, Course, Week } from "@/types";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Download } from "lucide-react";
 
@@ -46,7 +45,7 @@ const ChapterDetails: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Header />
+        <WebsauceHeader />
         <div className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="animate-pulse text-websauce-500">Loading...</div>
         </div>
@@ -60,7 +59,7 @@ const ChapterDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-4 flex flex-wrap gap-2">
@@ -86,7 +85,7 @@ const ChapterDetails: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{chapter.title}</h1>
             
             <div className="mt-6 prose max-w-none">
-              <p>{chapter.description}</p>
+              <p>{chapter.content}</p>
             </div>
             
             {chapter.pdf_url && (

@@ -1,9 +1,8 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
 import { getUsers, updateUser } from "@/lib/data";
-import Header from "@/components/Header";
+import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
@@ -56,17 +55,22 @@ const AdminUsers: React.FC = () => {
     });
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) {
+      return "N/A"; // Display N/A if date is missing
+    }
     try {
+      // Attempt to format assuming it's a valid ISO string or can be parsed
       return format(new Date(dateString), 'MMM d, yyyy');
     } catch (error) {
+      console.warn(`Error formatting date string: ${dateString}`, error);
       return 'Invalid date';
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
+      <WebsauceHeader />
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
