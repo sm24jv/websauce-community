@@ -9,11 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addYears } from "date-fns";
+import { format, addYears, isValid, parseISO } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 interface UserFormData {
   email: string;
@@ -31,41 +40,59 @@ const UserForm: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<UserFormData>();
+  const form = useForm<UserFormData>({
+    defaultValues: {
+        email: "",
+        role: "user",
+        status: "active",
+        start_date: "",
+        end_date: "",
+    }
+  });
+  const { register, handleSubmit, control, formState: { errors }, reset, watch, setValue } = form;
   
-  // Watch the role field to conditionally disable dates
   const selectedRole = watch("role");
   const isAdminSelected = selectedRole === 'admin';
-
-  // Set default dates for new users (if not admin)
+  
   useEffect(() => {
-    if (!isEditMode && !isAdminSelected) { // Only set default dates for new non-admins
-      const today = new Date();
-      const nextYear = addYears(today, 1);
-      setValue('start_date', format(today, 'yyyy-MM-dd'));
-      setValue('end_date', format(nextYear, 'yyyy-MM-dd'));
-    }
-    // Clear dates if admin is selected for a new user
-    if (!isEditMode && isAdminSelected) {
+    if (!isEditMode) { 
+      if (isAdminSelected) {
         setValue('start_date', '');
         setValue('end_date', '');
+      } else {
+        if (!form.getValues('start_date') && !form.getValues('end_date')) {
+            const today = new Date();
+            const nextYear = addYears(today, 1);
+            setValue('start_date', format(today, 'yyyy-MM-dd'));
+            setValue('end_date', format(nextYear, 'yyyy-MM-dd'));
+        }
+      }
     }
-  }, [isEditMode, isAdminSelected, setValue]);
+  }, [isEditMode, isAdminSelected, setValue, form]);
   
-  // Fetch user data if in edit mode
   const { data: user, isError: isUserError, error: userError } = useQuery({
     queryKey: ['user', userId],
     queryFn: () => getUser(userId!),
     enabled: isEditMode,
   });
   
-  // Set form values when user data is loaded
   useEffect(() => {
     if (user) {
-        // Format dates only if they exist
-        const formattedStartDate = user.start_date ? format(new Date(user.start_date), 'yyyy-MM-dd') : '';
-        const formattedEndDate = user.end_date ? format(new Date(user.end_date), 'yyyy-MM-dd') : '';
-        
+        let formattedStartDate = '';
+        if (user.start_date) {
+            const parsedStartDate = parseISO(user.start_date);
+            if (isValid(parsedStartDate)) {
+                formattedStartDate = format(parsedStartDate, 'yyyy-MM-dd');
+            }
+        }
+        let formattedEndDate = '';
+        if (user.end_date) {
+            const parsedEndDate = parseISO(user.end_date);
+            if (isValid(parsedEndDate)) {
+                formattedEndDate = format(parsedEndDate, 'yyyy-MM-dd');
+            }
+        }
+
         reset({
             email: user.email,
             role: user.role,
@@ -76,22 +103,23 @@ const UserForm: React.FC = () => {
     }
   }, [user, reset]);
   
-  // Create user mutation
   const createMutation = useMutation({
     mutationFn: (data: UserFormData) => {
       console.log("Creating user with data:", data);
       const profileData: Omit<User, 'id' | 'email'> = {
           role: data.role,
           status: data.status,
-          // Only include dates if role is not admin
-          ...(data.role !== 'admin' && {
+          ...(data.role !== 'admin' && data.start_date && data.end_date && {
               start_date: new Date(data.start_date).toISOString(),
               end_date: new Date(data.end_date).toISOString()
           })
       };
+      if (!data.password) {
+        throw new Error("Password is required for new users.");
+      }
       return createUser(
-        data.email, 
-        data.password!, 
+        data.email,
+        data.password,
         profileData
       );
     },
@@ -108,13 +136,12 @@ const UserForm: React.FC = () => {
       console.error("Failed to create user:", error);
       toast({
         title: "Error",
-        description: "Failed to create user. Check the console for details.",
+        description: error.message || "Failed to create user. Check the console for details.",
         variant: "destructive",
       });
     }
   });
   
-  // Update user mutation
   const updateMutation = useMutation({
     mutationFn: (data: Partial<User>) => {
       console.log("Updating user profile with data:", data);
@@ -134,7 +161,7 @@ const UserForm: React.FC = () => {
       console.error("Failed to update user:", error);
       toast({
         title: "Error",
-        description: "Failed to update user. Check the console for details.",
+        description: error.message || "Failed to update user. Check the console for details.",
         variant: "destructive",
       });
     }
@@ -143,38 +170,33 @@ const UserForm: React.FC = () => {
   const onSubmit = (data: UserFormData) => {
     console.log("Form submitted with data:", data);
     
-    let submitData: Partial<User> = {
-        role: data.role,
-        status: data.status,
-    };
-
-    if (data.role !== 'admin') {
-        // Validate and add dates only for non-admins
-        if (!data.start_date || !data.end_date) {
-            toast({ title: "Error", description: "Start and End dates are required for non-admin users.", variant: "destructive" });
-            return;
-        }
-        submitData.start_date = new Date(data.start_date).toISOString();
-        submitData.end_date = new Date(data.end_date).toISOString();
-    } else {
-        // Ensure dates are explicitly removed or set to null/undefined for admins
-        // Depending on how updateUser handles undefined vs null
-        submitData.start_date = undefined; // Or null, depending on Firestore rules/needs
-        submitData.end_date = undefined;   // Or null
-    }
-
     if (isEditMode) {
+      let submitData: Partial<User> = {
+          role: data.role,
+          status: data.status,
+      };
+
+      if (data.role === 'admin') {
+          submitData.start_date = undefined; 
+          submitData.end_date = undefined;
+      } else {
+          if (!data.start_date || !data.end_date) {
+               toast({ title: "Error", description: "Start and End dates are required for 'user' role.", variant: "destructive" });
+               return;
+          }
+          try {
+              submitData.start_date = new Date(data.start_date).toISOString();
+              submitData.end_date = new Date(data.end_date).toISOString();
+          } catch (e) {
+               toast({ title: "Error", description: "Invalid date format provided.", variant: "destructive" });
+               return;
+          }
+      }
       console.log("Submitting update data:", submitData);
       updateMutation.mutate(submitData);
     } else {
-      if (!data.password) {
-        toast({ title: "Error", description: "Password is required for new users", variant: "destructive" });
-        return;
-      }
-      // Pass the full form data (including password) to createMutation
-      // The mutationFn will handle extracting profile data correctly
-      console.log("Submitting create data:", data); 
-      createMutation.mutate(data); 
+      console.log("Submitting create data:", data);
+      createMutation.mutate(data);
     }
   };
   
@@ -210,121 +232,144 @@ const UserForm: React.FC = () => {
           <CardHeader>
             <CardTitle>{isEditMode ? "Edit User" : "Create New User"}</CardTitle>
           </CardHeader>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="user@example.com"
-                  {...register("email", { 
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address"
-                    }
-                  })}
-                  disabled={isEditMode} // Can't change email for existing users
-                />
-                {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
-              </div>
-              
-              {!isEditMode && (
+          <Form {...form}>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter password"
-                    {...register("password", { 
-                      required: !isEditMode ? "Password is required for new users" : false,
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters"
+                    id="email"
+                    type="email"
+                    placeholder="user@example.com"
+                    {...register("email", { 
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address"
                       }
                     })}
+                    disabled={isEditMode}
                   />
-                  {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+                  {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <select
-                  id="role"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  {...register("role", { required: "Role is required" })}
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                {errors.role && <p className="text-red-500 text-sm">{errors.role.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  {...register("status", { required: "Status is required" })}
-                >
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="deleted">Deleted</option>
-                </select>
-                {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="start_date">Start Date</Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  {...register("start_date", { 
-                      required: !isAdminSelected ? "Start date is required for users" : false 
-                  })}
-                  disabled={isAdminSelected} // Disable if admin role is selected
-                  className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""} // Optional visual cue
+                
+                {!isEditMode && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter password"
+                      {...register("password", { 
+                        required: !isEditMode ? "Password is required for new users" : false,
+                        minLength: {
+                          value: 6,
+                          message: "Password must be at least 6 characters"
+                        }
+                      })}
+                    />
+                    {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
+                  </div>
+                )}
+                
+                <FormField
+                  control={control}
+                  name="role"
+                  rules={{ required: "Role is required" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.start_date && <p className="text-red-500 text-sm">{errors.start_date.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="end_date">End Date</Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  {...register("end_date", { 
-                      required: !isAdminSelected ? "End date is required for users" : false 
-                  })}
-                  disabled={isAdminSelected} // Disable if admin role is selected
-                  className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""} // Optional visual cue
+                
+                <FormField
+                  control={control}
+                  name="status"
+                  rules={{ required: "Status is required" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="paused">Paused</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.end_date && <p className="text-red-500 text-sm">{errors.end_date.message}</p>}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => navigate("/admin/users")}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : isEditMode
-                    ? "Update User"
-                    : "Create User"
-                }
-              </Button>
-            </CardFooter>
-          </form>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Start Date</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    {...register("start_date", { 
+                        required: !isAdminSelected ? "Start date is required for users" : false 
+                    })}
+                    disabled={isAdminSelected}
+                    className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""}
+                  />
+                  {errors.start_date && <p className="text-red-500 text-sm">{errors.start_date.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">End Date</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    {...register("end_date", { 
+                        required: !isAdminSelected ? "End date is required for users" : false 
+                    })}
+                    disabled={isAdminSelected}
+                    className={isAdminSelected ? "bg-gray-100 cursor-not-allowed" : ""}
+                  />
+                  {errors.end_date && <p className="text-red-500 text-sm">{errors.end_date.message}</p>}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => navigate("/admin/users")}
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="bg-websauce-600 hover:bg-websauce-700"
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : isEditMode
+                      ? "Update User"
+                      : "Create User"
+                  }
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </main>
     </div>

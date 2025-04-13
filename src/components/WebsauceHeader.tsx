@@ -8,7 +8,7 @@ const WebsauceHeader: React.FC = () => {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
 
-  const logoUrl = settings?.logo_url || "https://websauce.be/wp-content/themes/websauce/dist/images/logo.svg";
+  const logoUrl = settings?.logo_url || "https://websauce.be/wp-content/uploads/2018/02/smallLogoWebsauce_hori-1.jpg";
   const platformName = settings?.platform_name || "Websauce Community";
 
   return (
