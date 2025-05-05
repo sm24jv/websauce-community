@@ -247,12 +247,13 @@ export const deleteChapter = async (id: string): Promise<boolean> => {
 
 export const getUsers = async (): Promise<User[]> => {
   try {
-    console.log("Fetching users from Firestore");
-    const users = await FirebaseUtils.getCollection(COLLECTIONS.USERS);
+    console.log("Fetching users from Firestore (sorted by createdAt desc)");
+    // Call the new function that includes sorting
+    const users = await FirebaseUtils.getUsersSortedByCreationDate(); 
     return users as User[];
   } catch (error) {
-    console.error("Error fetching users:", error);
-    return [];
+    console.error("Error fetching sorted users:", error);
+    return []; // Return empty array on error
   }
 };
 

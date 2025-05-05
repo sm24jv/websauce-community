@@ -4,6 +4,7 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updatePassword as firebaseUpdatePassword,
+  sendEmailVerification,
   User as FirebaseUser
 } from 'firebase/auth';
 import { 
@@ -18,14 +19,32 @@ import {
   deleteDoc, 
   setDoc,
   serverTimestamp,
-  DocumentData
+  DocumentData,
+  orderBy
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { User, UserRole, UserStatus } from '@/types';
 
+// Define the base URL for action links (use environment variable if possible)
+const ACTION_LINK_BASE_URL = import.meta.env.VITE_APP_BASE_URL || 'https://academy.websauce.be';
+
 // Auth functions
 export const createUser = async (email: string, password: string): Promise<FirebaseUser> => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  try {
+    // Add ActionCodeSettings for email verification
+    const actionCodeSettings = {
+        url: `${ACTION_LINK_BASE_URL}/verify-email`, // Redirect to custom page
+        handleCodeInApp: true, // Indicates the action will be handled by the app
+    };
+    await sendEmailVerification(userCredential.user, actionCodeSettings);
+    console.log("Verification email sent to:", email, "with settings:", actionCodeSettings);
+  } catch (verificationError) {
+    // Log the error but don't fail the whole user creation process
+    // Maybe the email provider is down, but the user account is still valid
+    console.error("Failed to send verification email:", verificationError);
+    // Optionally, you could add specific error handling here, like informing the user
+  }
   return userCredential.user;
 };
 
@@ -39,7 +58,12 @@ export const signOut = async () => {
 };
 
 export const resetPassword = async (email: string) => {
-  await sendPasswordResetEmail(auth, email);
+  const actionCodeSettings = {
+      url: `${ACTION_LINK_BASE_URL}/reset-password`, // Redirect to custom page
+      handleCodeInApp: true,
+  };
+  await sendPasswordResetEmail(auth, email, actionCodeSettings);
+  console.log("Password reset email sent to:", email, "with settings:", actionCodeSettings);
 };
 
 export const updatePassword = async (newPassword: string) => {
@@ -133,6 +157,18 @@ export const deleteDocument = async (collectionName: string, id: string) => {
 
 export const getCollection = async (collectionName: string) => {
   const querySnapshot = await getDocs(collection(db, collectionName));
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
+
+// New function specifically for fetching users sorted by createdAt descending
+export const getUsersSortedByCreationDate = async () => {
+  const usersCollection = collection(db, 'users');
+  // Add the orderBy clause
+  const q = query(usersCollection, orderBy('createdAt', 'desc')); 
+  const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()

@@ -113,7 +113,7 @@ const LoginPage: React.FC = () => {
           <CardFooter className="bg-gray-50 p-6 flex flex-col gap-4 border-t">
             <Button
               type="submit"
-              className="w-full bg-theme-primary hover:opacity-90 text-white transition duration-150 ease-in-out disabled:opacity-75"
+              className="w-full bg-[#3B82F6] text-white hover:bg-gray-100 hover:text-gray-900 hover:border hover:border-gray-300 transition duration-150 ease-in-out disabled:opacity-75"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

@@ -12,6 +12,8 @@ import { UserRole, UserStatus } from '@/types';
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
 import ForgotPasswordPage from "./pages/ForgotPassword";
+import VerifyEmailPage from "./pages/VerifyEmail";
+import ResetPasswordPage from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import CourseDetails from "./pages/CourseDetails";
 import WeekDetails from "./pages/WeekDetails";
@@ -81,6 +83,8 @@ const App = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             {/* Redirect root to dashboard if logged in, otherwise to login */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

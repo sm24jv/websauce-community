@@ -1,99 +1,176 @@
-import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
-import { resetPassword } from "@/lib/auth";
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth';
+import { auth } from '@/integrations/firebase/firebase'; // Import auth from its source
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
-const ResetPassword: React.FC = () => {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+const ResetPasswordPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { token } = useParams();
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [email, setEmail] = useState<string | null>(null); // Store email after code verification
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
+  const oobCode = searchParams.get('oobCode');
+  const mode = searchParams.get('mode');
+
+  useEffect(() => {
+    if (mode !== 'resetPassword' || !oobCode) {
+      setError('Invalid action link. Please request a password reset again.');
+      setLoading(false);
+      setVerifying(false);
+      return;
+    }
+
+    const verifyCode = async () => {
+      setLoading(true);
+      setVerifying(true);
+      setError(null);
+      try {
+        const userEmail = await verifyPasswordResetCode(auth, oobCode);
+        setEmail(userEmail); // Code is valid, store email
+        setVerifying(false); // Show password form
+      } catch (err: any) {
+        console.error("Password reset code verification failed:", err);
+        setError(err.message || 'Invalid or expired password reset link.');
+        setVerifying(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyCode();
+  }, [oobCode, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
+    setError(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setError("New passwords do not match.");
       return;
     }
-    
-    setLoading(true);
-    
+    if (newPassword.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+    }
+    if (!oobCode) { // Should not happen if form is displayed, but good check
+        setError("Action code missing. Please try again.");
+        return;
+    }
+
+    setIsSubmitting(true);
     try {
-      // Fix: Only pass password to resetPassword function
-      const { success, error } = await resetPassword(password);
-      
-      if (success) {
-        toast({
-          title: "Password reset successful",
-          description: "Your password has been updated. You can now log in with your new password.",
-        });
-        navigate("/login");
-      } else {
-        toast({
-          title: "Password reset failed",
-          description: error || "An error occurred while resetting your password.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Password reset failed",
-        description: "An error occurred while resetting your password.",
-        variant: "destructive",
-      });
+      await confirmPasswordReset(auth, oobCode, newPassword);
+      setSuccess(true);
+      toast({ title: "Success", description: "Your password has been reset successfully." });
+      // Delay navigation slightly to allow user to see success message
+      setTimeout(() => navigate('/login'), 2000); 
+    } catch (err: any) {
+      console.error("Password reset confirmation failed:", err);
+      setError(err.message || 'Failed to reset password. Please try again.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
-          <CardDescription className="text-center">Enter your new password.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center space-y-3 text-gray-600">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p>Loading...</p>
+        </div>
+      );
+    }
+    if (error && verifying) { // Error during initial verification
+       return (
+        <div className="flex flex-col items-center space-y-3 text-red-600">
+          <AlertCircle className="h-8 w-8" />
+          <p>{error}</p>
+          <Link to="/forgot-password">
+            <Button variant="outline">Request Reset Again</Button>
+          </Link>
+        </div>
+      );
+    }
+     if (success) {
+      return (
+        <div className="flex flex-col items-center space-y-3 text-green-600">
+          <CheckCircle className="h-8 w-8" />
+          <p>Password reset successful! Redirecting to login...</p>
+        </div>
+      );
+    }
+    if (email && !verifying) { // Code verified, show password form
+      return (
+        <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="text-red-600 text-sm text-center">{error}</div>
+            )}
+           <p className="text-sm text-gray-600 text-center">Enter a new password for {email}.</p>
+           <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
               <Input
-                id="password"
+                id="newPassword"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="•••••••• (min. 6 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
                 required
+                className="transition duration-150 ease-in-out focus:ring-websauce-500 focus:border-websauce-500"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+             <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
               <Input
-                id="confirmPassword"
+                id="confirmNewPassword"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
                 required
+                className="transition duration-150 ease-in-out focus:ring-websauce-500 focus:border-websauce-500"
               />
             </div>
-            <Button disabled={loading} className="w-full mt-4">
-              {loading ? "Resetting..." : "Reset Password"}
+            <Button
+              type="submit"
+              className="w-full bg-[#3B82F6] text-white hover:bg-gray-100 hover:text-gray-900 hover:border hover:border-gray-300 transition duration-150 ease-in-out disabled:opacity-75"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Reset Password'}
             </Button>
-          </form>
+        </form>
+      );
+    }
+     // Fallback for unexpected states
+     return <p className="text-center text-gray-600">Something went wrong.</p>;
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4">
+      <Card className="w-full max-w-md animate-fade-in border-t-4 border-theme-secondary shadow-xl overflow-hidden rounded-lg">
+        <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
+          <CardTitle className="text-2xl font-semibold text-gray-800">Reset Password</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          {renderContent()}
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default ResetPassword;
+export default ResetPasswordPage;

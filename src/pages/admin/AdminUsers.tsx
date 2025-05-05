@@ -2,13 +2,18 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
 import { getUsers, updateUser } from "@/lib/data";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { Pencil, Plus, PlayCircle, PauseCircle, CheckCircle, XCircle } from "lucide-react";
+import { Pencil, Plus, PlayCircle, PauseCircle, CheckCircle, XCircle, Trash } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+
+// Initialize Firebase Functions
+const functions = getFunctions();
+const deleteUserAccountCallable = httpsCallable(functions, 'deleteUserAccount');
 
 const AdminUsers: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +39,34 @@ const AdminUsers: React.FC = () => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      console.log(`Calling deleteUserAccount function for user ID: ${userId}`);
+      // Call the cloud function
+      const result = await deleteUserAccountCallable({ userId });
+      // Return the result or throw an error if needed based on result.data
+      // The function throws HttpsError on failure, which react-query catches
+      return result.data; 
+    },
+    onSuccess: (data: any) => { // data type depends on function return
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast({
+        title: "User Deleted",
+        // Use message from function if available, or provide default
+        description: data?.message || "User account deleted successfully.", 
+      });
+    },
+    onError: (error: any) => {
+      console.error("Cloud function deleteUserAccount error:", error);
+      toast({
+        title: "Error",
+        // Display the error message from the cloud function
+        description: error.message || "Failed to delete user account.", 
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleEdit = (userId: string) => {
     navigate(`/admin/users/edit/${userId}`);
   };
@@ -53,6 +86,22 @@ const AdminUsers: React.FC = () => {
         });
       }
     });
+  };
+
+  const handleDelete = (user: User) => {
+    if (user.status !== 'paused') {
+      toast({
+        title: "Action Denied",
+        description: "Only paused users can be deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to permanently delete user ${user.email}? This action cannot be undone.`)) {
+        // Trigger the mutation with the user ID
+        deleteMutation.mutate(user.id);
+    }
   };
 
   const formatDate = (dateString: string | undefined | null): string => {
@@ -151,6 +200,15 @@ const AdminUsers: React.FC = () => {
                               <PlayCircle size={16} />
                             </Button>
                           )}
+
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => handleDelete(user)}
+                            title="Delete User Permanently (Paused Only)"
+                          >
+                            <Trash size={16} />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

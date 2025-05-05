@@ -44,7 +44,7 @@ const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4">
-      <Card className="w-full max-w-md animate-fade-in border-t-4 border-websauce-600 shadow-xl overflow-hidden rounded-lg">
+      <Card className="w-full max-w-md animate-fade-in border-t-4 border-theme-secondary shadow-xl overflow-hidden rounded-lg">
         <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
           <Link to="/">
             <img
@@ -76,7 +76,7 @@ const ForgotPasswordPage: React.FC = () => {
           <CardContent className="p-6 space-y-4 text-center">
             <MailCheck className="mx-auto h-16 w-16 text-green-500" />
             <p className="text-sm text-gray-600">
-              We've sent a password reset link to <strong>{email}</strong>. 
+              If an account exists for <strong>{email}</strong>, we've sent a password reset link.
               Please check your inbox (and spam folder) and follow the instructions.
             </p>
             {isDevelopment && (
@@ -91,8 +91,7 @@ const ForgotPasswordPage: React.FC = () => {
              <div className="pt-4">
                 <Link to="/login">
                   <Button
-                    variant="outline"
-                    className="w-full text-websauce-600 border-websauce-300 hover:bg-websauce-50"
+                    className="w-full bg-[#3B82F6] text-white hover:bg-gray-100 hover:text-gray-900 hover:border hover:border-gray-300 transition duration-150 ease-in-out"
                   >
                     Back to Login
                   </Button>
@@ -119,7 +118,7 @@ const ForgotPasswordPage: React.FC = () => {
             <CardFooter className="bg-gray-50 p-6 flex flex-col gap-4 border-t">
               <Button
                 type="submit"
-                className="w-full bg-websauce-600 hover:bg-websauce-700 text-white transition duration-150 ease-in-out disabled:opacity-75"
+                className="w-full bg-[#3B82F6] text-white hover:bg-gray-100 hover:text-gray-900 hover:border hover:border-gray-300 transition duration-150 ease-in-out disabled:opacity-75"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

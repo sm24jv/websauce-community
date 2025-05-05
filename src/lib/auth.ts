@@ -8,6 +8,7 @@ const getFirebaseAuthErrorMessage = (error: any): string => {
     switch (error.code) {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
+      case 'auth/invalid-credential':
         return 'Invalid email or password.';
       case 'auth/email-already-in-use':
         return 'This email address is already in use.';
@@ -25,17 +26,29 @@ const getFirebaseAuthErrorMessage = (error: any): string => {
   return 'An unexpected error occurred.';
 };
 
+// Define Admin Email (consider using environment variable for flexibility)
+const ADMIN_EMAIL = "jan@websauce.be";
+
 export const login = async (email: string, password: string): Promise<{ user: User | null; error: string | null }> => {
   try {
     console.log("Attempting Firebase login with:", email);
     const firebaseUser = await FirebaseUtils.signIn(email, password);
-    console.log("Firebase login successful, fetching profile for:", firebaseUser.uid);
+    console.log("Firebase login successful for:", firebaseUser.uid);
 
+    // Check Email Verification, BUT bypass for the admin user
+    if (!firebaseUser.emailVerified && firebaseUser.email !== ADMIN_EMAIL) { 
+      console.warn("Login attempt failed: Email not verified for UID:", firebaseUser.uid);
+      await FirebaseUtils.signOut(); 
+      localStorage.removeItem("websauce_user");
+      return { user: null, error: "Please verify your email address before logging in. Check your inbox (and spam folder)." };
+    }
+
+    // Proceed if email is verified OR if it's the admin user
+    console.log("Email verified or is admin, fetching profile for:", firebaseUser.uid);
     const userProfile = await FirebaseUtils.getUserProfile(firebaseUser.uid);
 
     if (!userProfile) {
       console.error("User profile not found after login for UID:", firebaseUser.uid);
-      // Attempt to sign out the user as their profile doesn't exist
       await FirebaseUtils.signOut();
       localStorage.removeItem("websauce_user");
       return { user: null, error: "User profile not found. Please contact support." };
@@ -65,13 +78,25 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       }
     }
     
-    // User is valid (active status, and dates valid if not admin)
+    // User is valid and email is verified
     localStorage.setItem("websauce_user", JSON.stringify(userProfile));
     console.log("Full login successful:", userProfile);
     return { user: userProfile, error: null };
 
   } catch (error) {
-    console.error("Firebase login error:", error);
+    // Log the RAW error object for detailed debugging
+    console.error("Login function caught error:", error); 
+    // Log specific properties if they exist
+    if (error instanceof Error) {
+        console.error("Error Name:", error.name);
+        console.error("Error Message:", error.message);
+        console.error("Error Stack:", error.stack);
+    }
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+        console.error("Error Code:", (error as { code: unknown }).code);
+    }
+
+    // Keep generating the user-facing message, but the console logs are key
     const errorMessage = getFirebaseAuthErrorMessage(error);
     return { user: null, error: errorMessage };
   }
@@ -158,15 +183,18 @@ export const createUser = async (email: string, password: string, userData: Omit
     return newUser;
 
   } catch (error) {
-    console.error("Error in createUser:", error);
-    // Optional: Clean up - If Firestore profile creation fails, maybe delete the Auth user?
-    // This adds complexity (error handling for cleanup) and might not be desired.
-    // if (firebaseUserUid) {
-    //   console.warn("Attempting to clean up partially created user:", firebaseUserUid);
-    //   // Need a deleteUser function in FirebaseUtils (using Admin SDK ideally, or client-side delete if absolutely necessary)
-    // }
+    console.error("Error during user creation process:", error);
+    
+    // Determine the error message, but don't re-throw
     const errorMessage = getFirebaseAuthErrorMessage(error);
-    // Propagate the specific error message
-    throw new Error(errorMessage);
+    console.error(`CreateUser Error Message: ${errorMessage}`);
+
+    // Optional: Attempt cleanup if Firestore creation failed but Auth succeeded
+    // if (firebaseUserUid) { ... }
+
+    // Since an error occurred somewhere, return null to indicate failure 
+    // to the calling function (Register.tsx) without throwing.
+    // Register.tsx's check `if (newUser)` will handle this.
+    return null; 
   }
 };
