@@ -2,55 +2,163 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users Collection Rules
-	match /users/{userId} {
-      // Allow create if user is creating their own OR if requestor is admin
-      allow create: if request.auth != null &&
-                     (request.auth.uid == userId ||
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-
-      // Allow read if user is reading their own OR if requestor is admin
-      allow read: if request.auth != null &&
-                   (request.auth.uid == userId ||
-                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-
-      // Allow update if user is updating their own OR if requester is admin
-			allow update: if request.auth != null &&
-                 (request.auth.uid == userId ||
-                  get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      // OR: allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-
-      // Allow delete ONLY if user is deleting their own (or only admin)
-      allow delete: if request.auth != null &&
-      						(request.auth.uid == userId ||
-                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      // OR: allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    // Allow public read access to the platform settings document
+    // IMPORTANT: Verify the actual path to your settings document.
+    // This example assumes it's in a 'settings' collection with a document ID 'platform'.
+    match /settings/platform { // TODO: USER MUST VERIFY THIS PATH
+      allow get: if true; // Allows anyone to read this document
+      allow list: if true; // Should be false unless specifically needed for a query
+      allow write: if request.auth != null && request.auth.token.role == 'admin';
     }
-       // --- Settings Rules ---
-    // Allow only admin users to read and write the platform settings document
-    match /settings/platform {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    // --- End Settings Rules ---
 
-    // Course, Week, Chapter Rules (Example - Adjust based on needs)
-    // These allow any authenticated user to read, but only admins to write.
+    // Rules for 'users' collection
+    match /users/{userId} {
+      // Allow users to read their own profile and admins to read any user profile
+      allow get: if request.auth != null && (request.auth.uid == userId || request.auth.token.role == 'admin');
+      
+      // Allow authenticated users to create their own profile document (typically upon first sign-up)
+      // The UID must match the document ID being created.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to update specific fields of their own profile, and admins to update any field
+      allow update: if request.auth != null && (
+        (request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName', 'lastName', 'updatedAt', 'photoURL'])) ||
+        (request.auth.token.role == 'admin')
+      );
+      
+      // Restrict direct client-side deletion. Admins can delete.
+      allow delete: if request.auth != null && request.auth.token.role == 'admin';
+      
+      // Admins can list users
+      allow list: if request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    // --- Message Board Category Rules --- //
+    match /message_categories/{categoryId} {
+      allow get: if true; // Public read
+      allow list: if true; // Public list
+      allow create, update, delete: if request.auth != null && request.auth.token.role == 'admin';
+    }
+    // --- End Message Board Category Rules --- //
+
+    // Rules for 'courses' collection
     match /courses/{courseId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow get: if request.auth != null; 
+      allow list: if request.auth != null; 
+      allow create, update, delete: if request.auth != null && request.auth.token.role == 'admin';
     }
-    match /weeks/{weekId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-     match /chapters/{chapterId} {
-       allow read: if request.auth != null;
-       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-     }
 
-    // Default deny for any unspecified paths
-    match /{document=**} {
-      allow read, write: if false;
+    // Rules for 'weeks' subcollection
+    match /courses/{courseId}/weeks/{weekId} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.token.role == 'admin';
     }
+    
+    // Rules for 'chapters' subcollection
+    match /courses/{courseId}/weeks/{weekId}/chapters/{chapterId} {
+      allow get: if request.auth != null;
+      allow list: if request.auth != null;
+      allow create, update, delete: if request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    // Message Posts: Allow public read, authenticated users to create
+    match /message_posts/{postId} {
+      allow read: if request.auth != null;
+      allow list: if request.auth != null;
+      allow create: if request.auth != null && 
+                      request.resource.data.authorId == request.auth.uid &&
+                      exists(/databases/$(database)/documents/message_categories/$(request.resource.data.categoryId)) &&
+                      request.resource.data.title is string &&
+                      request.resource.data.title.size() > 0 &&
+                      request.resource.data.content is string &&
+                      request.resource.data.content.size() > 0 &&
+                      request.resource.data.createdAt == request.time &&
+                      request.resource.data.commentCount == 0 &&
+                      request.resource.data.keys().hasOnly(['title', 'content', 'categoryId', 'authorId', 'authorName', 'authorPhotoURL', 'createdAt', 'commentCount']);
+      
+      allow update: if request.auth != null &&
+                      (
+                        // Scenario 1: Updating commentCount via transaction
+                        (
+                          (
+                            // Handles increment from a number OR from null/missing (where resource.data.commentCount would be null)
+                            request.resource.data.commentCount == (resource.data.commentCount == null ? 1 : resource.data.commentCount + 1) ||
+                            // Handles decrement (will be important for comment deletion later)
+                            request.resource.data.commentCount == resource.data.commentCount - 1
+                          ) &&
+                          // This ensures that the write operation *only* affects the commentCount field.
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+                        ) || 
+                        // Scenario 2: Author editing their own post
+                        (
+                          resource.data.authorId == request.auth.uid && 
+                          // Ensure only title, content, and updatedAt can be modified
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'content', 'updatedAt']) &&
+                          // Verify critical fields remain unchanged
+                          request.resource.data.authorId == resource.data.authorId &&
+                          request.resource.data.categoryId == resource.data.categoryId &&
+                          request.resource.data.createdAt == resource.data.createdAt &&
+                          request.resource.data.commentCount == resource.data.commentCount &&
+                          // Title and content can't be empty
+                          request.resource.data.title is string &&
+                          request.resource.data.title.size() > 0 &&
+                          request.resource.data.content is string &&
+                          request.resource.data.content.size() > 0 &&
+                          // Ensure updatedAt is the current server time
+                          request.resource.data.updatedAt == request.time
+                        ) ||
+                        // Scenario 3: Admin editing any post
+                        (
+                          request.auth.token.role == 'admin' &&
+                          // Ensure only title, content, and updatedAt can be modified
+                          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'content', 'updatedAt']) &&
+                          // Title and content can't be empty
+                          request.resource.data.title is string &&
+                          request.resource.data.title.size() > 0 &&
+                          request.resource.data.content is string &&
+                          request.resource.data.content.size() > 0 &&
+                          // Ensure updatedAt is the current server time
+                          request.resource.data.updatedAt == request.time
+                        )
+                      );
+
+      allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || request.auth.token.role == 'admin');
+    }
+
+    // --- Message Comment Rules --- //
+    match /message_comments/{commentId} {
+      allow get: if true;
+      allow list: if true;
+
+      // Restored stricter create rule for comments
+      allow create: if request.auth != null &&
+                      request.resource.data.authorId == request.auth.uid &&
+                      request.resource.data.postId is string &&
+                      request.resource.data.postId.size() > 0 &&
+                      exists(/databases/$(database)/documents/message_posts/$(request.resource.data.postId)) &&
+                      request.resource.data.content is string &&
+                      request.resource.data.content.size() > 0 &&
+                      request.resource.data.createdAt == request.time &&
+                      (request.resource.data.authorName is string || request.resource.data.authorName == null) && 
+                      (request.resource.data.authorPhotoURL is string || request.resource.data.authorPhotoURL == null) &&
+                      request.resource.data.keys().hasOnly(['postId', 'authorId', 'authorName', 'authorPhotoURL', 'content', 'createdAt']);
+
+      allow update: if request.auth != null && 
+                      (resource.data.authorId == request.auth.uid || request.auth.token.role == 'admin') &&
+                      request.resource.data.content is string &&
+                      request.resource.data.content.size() > 0 &&
+                      request.resource.data.updatedAt == request.time &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'updatedAt']);
+                      
+      allow delete: if request.auth != null && (resource.data.authorId == request.auth.uid || request.auth.token.role == 'admin');
+    }
+    // --- End Message Comment Rules --- //
+
+    // Fallback: Deny all other reads/writes by default to unspecified paths
+    // This is a good security practice, but ensure all necessary paths are covered above.
+    // match /{document=**} {
+    //   allow read, write: if false;
+    // }
   }
 }

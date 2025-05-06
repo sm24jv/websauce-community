@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ const ForgotPasswordPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { settings, loadingSettings } = useSettings();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +50,14 @@ const ForgotPasswordPage: React.FC = () => {
         <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
           <Link to="/">
             <img
-              src="https://websauce.be/wp-content/themes/websauce/dist/images/logo.svg"
-              alt="Websauce Logo"
-              className="h-12 mx-auto mb-4"
+              src={settings?.logo_url || "https://websauce.be/wp-content/uploads/2018/02/smallLogoWebsauce_hori-1.jpg"}
+              alt={`${settings?.platform_name || "Websauce Community"} Logo`}
+              className={`h-12 mx-auto mb-4 ${!(settings?.logo_url) ? 'bg-gray-200 animate-pulse rounded' : ''}`}
+              onError={(e) => {
+                console.error("Logo image failed to load:", e.currentTarget.src);
+                e.currentTarget.src = "https://websauce.be/wp-content/uploads/2018/02/smallLogoWebsauce_hori-1.jpg";
+                e.currentTarget.classList.add('bg-gray-200');
+              }}
             />
           </Link>
           <CardTitle className="text-2xl font-semibold text-gray-800">
@@ -144,4 +151,4 @@ const ForgotPasswordPage: React.FC = () => {
   );
 };
 
-export default ForgotPasswordPage;
+export default ForgotPasswordPage; 

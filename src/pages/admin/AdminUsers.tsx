@@ -2,23 +2,25 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
 import { getUsers, updateUser } from "@/lib/data";
-import { getFunctions, httpsCallable } from "firebase/functions";
+// Remove httpsCallable, getFunctions will be used if needed for other functions, or can be removed if not.
+// import { getFunctions, httpsCallable } from "firebase/functions"; 
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { Pencil, Plus, PlayCircle, PauseCircle, CheckCircle, XCircle, Trash } from "lucide-react";
+import { Pencil, Plus, PlayCircle, PauseCircle, Trash } from "lucide-react"; // Removed CheckCircle, XCircle as they were not used
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
-// Initialize Firebase Functions
-const functions = getFunctions();
-const deleteUserAccountCallable = httpsCallable(functions, 'deleteUserAccount');
+// const functions = getFunctions(); // Only needed if other callable functions are used
+// const deleteUserAccountCallable = httpsCallable(functions, 'deleteUserAccount'); // Removed
 
 const AdminUsers: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { firebaseUser } = useAuth(); // Get firebaseUser from AuthContext
   
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['users'],
@@ -40,27 +42,46 @@ const AdminUsers: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      console.log(`Calling deleteUserAccount function for user ID: ${userId}`);
-      // Call the cloud function
-      const result = await deleteUserAccountCallable({ userId });
-      // Return the result or throw an error if needed based on result.data
-      // The function throws HttpsError on failure, which react-query catches
-      return result.data; 
+    mutationFn: async (targetUserId: string) => {
+      if (!firebaseUser) {
+        throw new Error("Admin user not authenticated to perform deletion.");
+      }
+      console.log(`Attempting to delete user via HTTP function for user ID: ${targetUserId}`);
+      const token = await firebaseUser.getIdToken(true); // Get admin's ID token
+
+      // IMPORTANT: Ensure the region in the URL (e.g., europe-west1) 
+      // matches your Cloud Function's deployed region.
+      // Also, ensure your project ID (websauce-community) is correct.
+      const response = await fetch(
+        `https://europe-west1-websauce-community.cloudfunctions.net/deleteUserAccount`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ userId: targetUserId }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to parse error response from server." }));
+        console.error("Error response from deleteUserAccount function:", response.status, errorData);
+        throw new Error(errorData.error || `Failed to delete user: ${response.statusText}`);
+      }
+      return response.json(); 
     },
-    onSuccess: (data: any) => { // data type depends on function return
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast({
         title: "User Deleted",
-        // Use message from function if available, or provide default
         description: data?.message || "User account deleted successfully.", 
       });
     },
     onError: (error: any) => {
-      console.error("Cloud function deleteUserAccount error:", error);
+      console.error("Client-side error during deleteUserAccount mutation:", error);
       toast({
-        title: "Error",
-        // Display the error message from the cloud function
+        title: "Deletion Error",
         description: error.message || "Failed to delete user account.", 
         variant: "destructive",
       });
@@ -99,17 +120,15 @@ const AdminUsers: React.FC = () => {
     }
 
     if (window.confirm(`Are you sure you want to permanently delete user ${user.email}? This action cannot be undone.`)) {
-        // Trigger the mutation with the user ID
         deleteMutation.mutate(user.id);
     }
   };
 
   const formatDate = (dateString: string | undefined | null): string => {
     if (!dateString) {
-      return "N/A"; // Display N/A if date is missing
+      return "N/A";
     }
     try {
-      // Attempt to format assuming it's a valid ISO string or can be parsed
       return format(new Date(dateString), 'MMM d, yyyy');
     } catch (error) {
       console.warn(`Error formatting date string: ${dateString}`, error);

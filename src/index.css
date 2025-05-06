@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,24 +13,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 198 100% 44%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 195 100% 97%;
-    --secondary-foreground: 198 100% 30%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 195 100% 92%;
-    --accent-foreground: 198 100% 30%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 198 100% 44%;
+    --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
 
@@ -43,6 +42,19 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Websauce specific colors */
+    --websauce-50: 210 100% 97%; /* Slightly desaturated light blue */
+    --websauce-100: 208 100% 94%; /* Lightest blue */
+    --websauce-200: 207 98% 88%; /* Light blue */
+    --websauce-300: 205 95% 81%; /* Medium light blue */
+    --websauce-400: 204 90% 70%; /* Sky blue */
+    --websauce-500: 202 85% 60%; /* Websauce primary blue */
+    --websauce-600: 202 78% 53%; /* Darker primary blue */
+    --websauce-700: 201 75% 45%; /* Dark blue */
+    --websauce-800: 200 70% 38%; /* Very dark blue */
+    --websauce-900: 199 65% 30%; /* Deepest blue */
+    --websauce-950: 198 60% 25%; /* Almost navy */
   }
 
   .dark {
@@ -55,7 +67,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 198 100% 44%;
+    --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -81,6 +93,19 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Websauce specific colors - Dark Mode */
+    --websauce-50: 198 60% 25%;
+    --websauce-100: 199 65% 30%;
+    --websauce-200: 200 70% 38%;
+    --websauce-300: 201 75% 45%;
+    --websauce-400: 202 78% 53%;
+    --websauce-500: 202 85% 60%; /* Websauce primary blue (can be same or adjusted) */
+    --websauce-600: 204 90% 70%;
+    --websauce-700: 205 95% 81%;
+    --websauce-800: 207 98% 88%;
+    --websauce-900: 208 100% 94%;
+    --websauce-950: 210 100% 97%;
   }
 }
 
@@ -104,4 +129,85 @@
 
 .course-card img {
   @apply transition-transform duration-300;
+}
+
+/* Styling for ReactQuill - with sticky toolbar */
+.QuillEditorContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 0.375rem;
+  background-color: white;
+  position: relative; /* Important for sticky positioning context */
+}
+
+/* Make toolbar truly sticky */
+.QuillEditorContainer .ql-toolbar.ql-snow {
+  position: sticky;
+  top: 0;
+  z-index: 5; /* Higher z-index to ensure it stays on top */
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  @apply border border-input bg-background;
+  border-bottom: none;
+  padding: 8px;
+  background-color: white; /* Ensure background is solid */
+  width: 100%; /* Ensure it takes full width */
+}
+
+/* Container for the editable area */
+.QuillEditorContainer .ql-container.ql-snow {
+  flex-grow: 1;
+  @apply border border-input bg-background;
+  border-top: none; /* No top border as it connects with toolbar */
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  height: calc(100% - 42px); /* Subtract toolbar height */
+  overflow: hidden; /* Hide overflow here, let editor scroll */
+}
+
+/* The actual editor area will scroll */
+.QuillEditorContainer .ql-editor {
+  height: 100%; /* Take full height of container */
+  overflow-y: auto; /* This is where scrolling happens */
+  @apply p-3;
+}
+
+/* Keep existing image styling */
+.QuillEditorContainer .ql-editor img {
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Dark mode styles */
+.dark .QuillEditorContainer .ql-toolbar.ql-snow,
+.dark .QuillEditorContainer .ql-container.ql-snow {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .QuillEditorContainer .ql-toolbar .ql-stroke {
+  stroke: #ccc;
+}
+
+.dark .QuillEditorContainer .ql-toolbar .ql-fill {
+  fill: #ccc;
+}
+
+.dark .QuillEditorContainer .ql-toolbar .ql-picker {
+  color: #ccc;
+}
+
+/* Ensure dropdowns appear properly */
+.QuillEditorContainer .ql-toolbar .ql-picker-options {
+  z-index: 20;
+}
+
+/* Ensure format menu items work properly */
+.QuillEditorContainer .ql-formats {
+  display: inline-flex;
+  vertical-align: middle;
+  align-items: center;
 }

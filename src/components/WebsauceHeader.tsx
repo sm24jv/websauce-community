@@ -29,6 +29,12 @@ const WebsauceHeader: React.FC = () => {
                 <Link to="/dashboard" className="text-gray-700 hover:text-websauce-600 transition-colors">
                   Dashboard
                 </Link>
+                <Link to="/events" className="text-gray-700 hover:text-websauce-600 transition-colors">
+                  Events
+                </Link>
+                <Link to="/message-board" className="text-gray-700 hover:text-websauce-600 transition-colors">
+                  Message Board
+                </Link>
                 {user.role === 'admin' && (
                   <Link to="/admin" className="text-gray-700 hover:text-websauce-600 transition-colors">
                     Admin

@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import WebsauceHeader from "@/components/WebsauceHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, Settings } from "lucide-react";
+import { Users, BookOpen, Settings, MessageSquare } from "lucide-react";
 
 const AdminDashboard: React.FC = () => {
   return (
@@ -15,7 +15,7 @@ const AdminDashboard: React.FC = () => {
           <p className="text-gray-500 mt-2">Manage your community platform</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link to="/admin/users">
             <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
               <CardHeader>
@@ -43,6 +43,21 @@ const AdminDashboard: React.FC = () => {
                 <p className="text-sm text-gray-500">
                   Build your curriculum by creating courses, organizing content into weeks and chapters,
                   and uploading videos and resources.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/admin/message-categories">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardHeader>
+                <MessageSquare className="h-8 w-8 text-websauce-600 mb-2" />
+                <CardTitle>Message Categories</CardTitle>
+                <CardDescription>Manage message board categories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500">
+                  Create, edit, and organize the categories for your community message board.
                 </p>
               </CardContent>
             </Card>

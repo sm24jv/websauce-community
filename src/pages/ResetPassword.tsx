@@ -28,7 +28,7 @@ const ResetPasswordPage: React.FC = () => {
 
   useEffect(() => {
     if (mode !== 'resetPassword' || !oobCode) {
-      setError('Invalid action link. Please request a password reset again.');
+      setError('Ongeldige actielink. Vraag opnieuw een wachtwoordherstel aan.');
       setLoading(false);
       setVerifying(false);
       return;
@@ -44,7 +44,7 @@ const ResetPasswordPage: React.FC = () => {
         setVerifying(false); // Show password form
       } catch (err: any) {
         console.error("Password reset code verification failed:", err);
-        setError(err.message || 'Invalid or expired password reset link.');
+        setError(err.message || 'Ongeldige of verlopen wachtwoordherstellink.');
         setVerifying(false);
       } finally {
         setLoading(false);
@@ -59,15 +59,15 @@ const ResetPasswordPage: React.FC = () => {
     setError(null);
 
     if (newPassword !== confirmNewPassword) {
-      setError("New passwords do not match.");
+      setError("De nieuwe wachtwoorden komen niet overeen.");
       return;
     }
     if (newPassword.length < 6) {
-        setError("Password must be at least 6 characters long.");
+        setError("Wachtwoord moet minimaal 6 tekens lang zijn.");
         return;
     }
     if (!oobCode) { // Should not happen if form is displayed, but good check
-        setError("Action code missing. Please try again.");
+        setError("Actiecode ontbreekt. Probeer het opnieuw.");
         return;
     }
 
@@ -75,12 +75,12 @@ const ResetPasswordPage: React.FC = () => {
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
       setSuccess(true);
-      toast({ title: "Success", description: "Your password has been reset successfully." });
+      toast({ title: "Succes", description: "Je wachtwoord is succesvol opnieuw ingesteld." });
       // Delay navigation slightly to allow user to see success message
       setTimeout(() => navigate('/login'), 2000); 
     } catch (err: any) {
       console.error("Password reset confirmation failed:", err);
-      setError(err.message || 'Failed to reset password. Please try again.');
+      setError(err.message || 'Kon wachtwoord niet opnieuw instellen. Probeer het opnieuw.');
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +91,7 @@ const ResetPasswordPage: React.FC = () => {
       return (
         <div className="flex flex-col items-center space-y-3 text-gray-600">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p>Loading...</p>
+          <p>Laden...</p>
         </div>
       );
     }
@@ -101,7 +101,7 @@ const ResetPasswordPage: React.FC = () => {
           <AlertCircle className="h-8 w-8" />
           <p>{error}</p>
           <Link to="/forgot-password">
-            <Button variant="outline">Request Reset Again</Button>
+            <Button variant="outline">Vraag opnieuw herstel aan</Button>
           </Link>
         </div>
       );
@@ -110,7 +110,7 @@ const ResetPasswordPage: React.FC = () => {
       return (
         <div className="flex flex-col items-center space-y-3 text-green-600">
           <CheckCircle className="h-8 w-8" />
-          <p>Password reset successful! Redirecting to login...</p>
+          <p>Wachtwoord succesvol opnieuw ingesteld! Wordt doorgestuurd naar inloggen...</p>
         </div>
       );
     }
@@ -120,13 +120,13 @@ const ResetPasswordPage: React.FC = () => {
             {error && (
               <div className="text-red-600 text-sm text-center">{error}</div>
             )}
-           <p className="text-sm text-gray-600 text-center">Enter a new password for {email}.</p>
+           <p className="text-sm text-gray-600 text-center">Voer een nieuw wachtwoord in voor {email}.</p>
            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
+              <Label htmlFor="newPassword">Nieuw wachtwoord</Label>
               <Input
                 id="newPassword"
                 type="password"
-                placeholder="•••••••• (min. 6 characters)"
+                placeholder="•••••••• (min. 6 tekens)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
@@ -134,7 +134,7 @@ const ResetPasswordPage: React.FC = () => {
               />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+              <Label htmlFor="confirmNewPassword">Bevestig nieuw wachtwoord</Label>
               <Input
                 id="confirmNewPassword"
                 type="password"
@@ -150,20 +150,20 @@ const ResetPasswordPage: React.FC = () => {
               className="w-full bg-[#3B82F6] text-white hover:bg-gray-100 hover:text-gray-900 hover:border hover:border-gray-300 transition duration-150 ease-in-out disabled:opacity-75"
               disabled={isSubmitting}
             >
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Reset Password'}
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Wachtwoord opnieuw instellen'}
             </Button>
         </form>
       );
     }
      // Fallback for unexpected states
-     return <p className="text-center text-gray-600">Something went wrong.</p>;
+     return <p className="text-center text-gray-600">Er is iets misgegaan.</p>;
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4">
       <Card className="w-full max-w-md animate-fade-in border-t-4 border-theme-secondary shadow-xl overflow-hidden rounded-lg">
         <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
-          <CardTitle className="text-2xl font-semibold text-gray-800">Reset Password</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-gray-800">Wachtwoord opnieuw instellen</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           {renderContent()}

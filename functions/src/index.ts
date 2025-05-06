@@ -7,13 +7,14 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-// Use onCall from v2/https
-import {onCall, HttpsError} from "firebase-functions/v2/https";
-// Remove unused v2 onRequest import
+// Remove unused v2 imports
+// import {onCall, HttpsError} from "firebase-functions/v2/https";
 // import {onRequest} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
-// Remove unused v1 functions import
-// import * as functions from "firebase-functions";
+
+// Remove unused specific logger import (functions.logger is used)
+// import * as logger from "firebase-functions/logger";
+
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 
 // Start writing functions
@@ -24,104 +25,159 @@ import * as admin from "firebase-admin";
 //   response.send("Hello from Firebase!");
 // });
 
-// Initialize Firebase Admin SDK (ensure this isn't done elsewhere)
-// Check if already initialized to prevent errors during deployment/emulation
-if (admin.apps.length === 0) {
-  admin.initializeApp();
-}
+// Initialize Firebase Admin SDK. Cloud Functions automatically sets credentials.
+admin.initializeApp();
 
-// Define the expected structure of the data passed to the function
-interface DeleteUserData {
+// Define allowed roles for validation
+const ALLOWED_ROLES = ["admin", "user"]; 
+
+// Define an interface for the expected data structure
+interface SetUserRoleData {
   userId: string;
+  role: string | null | undefined;
 }
 
 /**
- * Callable Cloud Function to delete a user account and their Firestore profile.
- * Uses v2 onCall handler.
- *
- * @param request - The request object containing data and auth context.
- * @returns {Promise<{success: boolean, message: string}>}
+ * HTTPS Callable function to set a user's role via custom claims.
+ * - Requires the CALLER to be authenticated.
+ * - Requires the CALLER to already have the 'admin' custom claim.
+ * - Accepts a target userId and the desired role.
  */
-// Use v2 onCall signature: onCall<RequestData>(handler)
-export const deleteUserAccount = onCall<DeleteUserData>(async (request) => {
-  // 1. Verify caller is authenticated (request.auth)
-  if (!request.auth) {
-    // Use HttpsError from v2
-    throw new HttpsError(
-        "unauthenticated",
-        "The function must be called while authenticated.",
+export const setUserRole = functions
+  .region('europe-west1') // Use .region() with explicit v1 import
+  .https.onCall(async (data: SetUserRoleData, context: functions.https.CallableContext) => { 
+  // 1. Check if caller is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated.",
     );
   }
 
-  // 2. Verify caller is an admin (using custom claims from request.auth)
-  // IMPORTANT: Ensure you are setting an 'admin' custom claim for your admin users
-  // using the Admin SDK elsewhere (e.g., upon initial admin creation or promotion).
-  const isAdmin = request.auth.token.admin === true;
-  if (!isAdmin) {
-     throw new HttpsError(
-        "permission-denied",
-        "Only administrators can delete user accounts.",
+  // 2. Check if caller is an admin (via custom claims)
+  const callerClaims = context.auth.token; // context.auth is checked, so token should exist
+  if (callerClaims.role !== "admin") {
+    functions.logger.warn(`Non-admin user ${context.auth.uid} attempted to set role.`);
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "Only administrators can set user roles.",
     );
   }
 
-  // 3. Validate input data (request.data)
-  // Use the defined interface for type safety
-  const userIdToDelete = request.data.userId;
-  if (typeof userIdToDelete !== 'string' || userIdToDelete.length === 0) {
-    throw new HttpsError(
-        "invalid-argument",
-        "The function must be called with a valid 'userId' string argument.",
+  // 3. Validate input data
+  const targetUserId = data.userId;
+  const targetRole = data.role;
+
+  if (typeof targetUserId !== "string" || targetUserId.length === 0) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a valid 'userId' argument.",
     );
   }
-
-  // Prevent admin from deleting themselves (optional safeguard - use request.auth.uid)
-  if (userIdToDelete === request.auth.uid) {
-      throw new HttpsError(
-        "permission-denied",
-        "Administrators cannot delete their own account.",
+  // Allow setting role to null/undefined to remove it, or validate against allowed roles
+  if (targetRole !== null && targetRole !== undefined && !ALLOWED_ROLES.includes(targetRole)) {
+     throw new functions.https.HttpsError(
+      "invalid-argument",
+      `Invalid role specified. Must be one of: ${ALLOWED_ROLES.join(", ")} or null.`, 
     );
   }
-
-  // Use logger directly
-  logger.log(`Admin ${request.auth.uid} attempting to delete user ${userIdToDelete}`);
-
+  
+  // 4. Set custom claim for the target user
   try {
-    // 4. Delete Firebase Auth user
-    logger.log(`Deleting Auth user: ${userIdToDelete}`);
-    await admin.auth().deleteUser(userIdToDelete);
-    logger.log(`Successfully deleted Auth user: ${userIdToDelete}`);
-
-    // 5. Delete Firestore user profile document
-    logger.log(`Deleting Firestore profile: users/${userIdToDelete}`);
-    const userDocRef = admin.firestore().collection("users").doc(userIdToDelete);
-    await userDocRef.delete();
-    logger.log(`Successfully deleted Firestore profile: users/${userIdToDelete}`);
-
-    return { success: true, message: `Successfully deleted user ${userIdToDelete}` };
-
-  } catch (error: unknown) { // Use unknown for safer type handling
-    logger.error(`Error deleting user ${userIdToDelete}:`, error);
-
-    // Type check before accessing properties like 'code'
-    let errorCode: string | undefined;
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-      errorCode = (error as { code: string }).code;
-    }
-
-    // Handle specific errors if needed (e.g., user not found)
-    if (errorCode === 'auth/user-not-found') {
-         throw new HttpsError(
-            "not-found",
-            `User with ID ${userIdToDelete} not found in Firebase Authentication.`,
-            error, // Pass the original error object
-        );
-    }
-
-    // Throw a generic internal error for other issues
-    throw new HttpsError(
-        "internal",
-        `An unexpected error occurred while deleting user ${userIdToDelete}.`,
-        error, // Pass the original error object
+    functions.logger.log(`Admin ${context.auth.uid} setting role '${targetRole || 'none'}' for user ${targetUserId}`);
+    // Set the custom claim. If targetRole is null/undefined, it removes the claim.
+    await admin.auth().setCustomUserClaims(targetUserId, { role: targetRole }); 
+    return { result: `Success! User ${targetUserId} role set to ${targetRole || 'none'}.` };
+  } catch (error: unknown) { // Changed type from any to unknown
+    functions.logger.error(`Error setting custom claims for user ${targetUserId}:`, error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "Failed to set custom claims.",
+      error, 
     );
   }
 });
+
+// Define allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:8080", // For local development
+  "https://academy.websauce.be", // Updated with the correct production app domain
+];
+
+export const deleteUserAccount = functions
+  .region("europe-west1") // Match the region of your other functions
+  .https.onRequest(async (request, response) => {
+    // Set CORS headers
+    const origin = request.headers.origin as string;
+    if (allowedOrigins.includes(origin)) {
+      response.set("Access-Control-Allow-Origin", origin);
+    }
+    response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (request.method === "OPTIONS") {
+      response.status(204).send("");
+      return;
+    }
+
+    if (request.method !== "POST") {
+      response.status(405).send({ error: "Method Not Allowed" });
+      return;
+    }
+
+    const authorizationHeader = request.headers.authorization;
+    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+      functions.logger.warn("Unauthorized attempt to delete user: Missing or malformed Authorization header");
+      response.status(401).send({ error: "Unauthorized: Missing or malformed Authorization header." });
+      return;
+    }
+
+    const idToken = authorizationHeader.split("Bearer ")[1];
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      functions.logger.error("Error verifying ID token:", error);
+      response.status(401).send({ error: "Unauthorized: Invalid ID token." });
+      return;
+    }
+
+    if (decodedToken.role !== "admin") {
+      functions.logger.warn(`User ${decodedToken.uid} (not admin) attempted to delete user.`);
+      response.status(403).send({ error: "Forbidden: Caller is not an admin." });
+      return;
+    }
+
+    const { userId: targetUserId } = request.body;
+    if (!targetUserId || typeof targetUserId !== "string") {
+      functions.logger.warn("Invalid request to delete user: Missing or invalid targetUserId");
+      response.status(400).send({ error: "Bad Request: Missing or invalid 'userId' in request body." });
+      return;
+    }
+
+    try {
+      functions.logger.log(`Admin ${decodedToken.uid} attempting to delete user ${targetUserId}`);
+      await admin.auth().deleteUser(targetUserId);
+      functions.logger.log(`Successfully deleted user ${targetUserId} from Firebase Auth.`);
+
+      const userDocRef = admin.firestore().collection("users").doc(targetUserId);
+      await userDocRef.delete();
+      functions.logger.log(`Successfully deleted Firestore document for user ${targetUserId}.`);
+
+      response.status(200).send({ message: `User ${targetUserId} and their data deleted successfully.` });
+    } catch (error: unknown) { // Changed from any to unknown
+      functions.logger.error(`Error deleting user ${targetUserId}:`, error);
+      // Check if error is an instance of Error to safely access message property
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      // Check if error has a code property (common in Firebase errors)
+      const errorCode = typeof error === 'object' && error !== null && 'code' in error ? (error as {code: string}).code : undefined;
+
+      if (errorCode === "auth/user-not-found") {
+        response.status(404).send({ error: "User not found." });
+      } else {
+        response.status(500).send({ error: "Internal Server Error: Failed to delete user.", details: errorMessage });
+      }
+    }
+  });
+
+// You can add other Cloud Functions here if needed

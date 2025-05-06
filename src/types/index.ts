@@ -1,3 +1,6 @@
+import { User as FirebaseUser } from "firebase/auth";
+import { FieldValue, Timestamp } from "firebase/firestore";
+
 export type UserRole = "admin" | "user";
 export type UserStatus = "active" | "paused" | "deleted";
 
@@ -5,6 +8,8 @@ export type UserStatus = "active" | "paused" | "deleted";
 export interface User {
   id: string;         // Firestore document ID (same as Firebase Auth UID)
   email: string;
+  firstName?: string; // Added for first name
+  lastName?: string;  // Added for last name
   role: UserRole;
   status: UserStatus;
   start_date?: string; // ISO date string - Optional for admins
@@ -75,4 +80,43 @@ export interface PlatformSettings {
   // Timestamps (Optional)
   createdAt?: any;
   updatedAt?: any;
+}
+
+// --- Message Board Types --- //
+
+// Corresponds to the 'messageCategories' collection in Firestore
+export interface MessageCategory {
+  id: string;         // Firestore document ID
+  name: string;
+  description?: string;
+  order?: number;     // Optional field for sorting categories
+  createdAt?: any;    // Firestore Server Timestamp
+  updatedAt?: any;    // Firestore Server Timestamp
+}
+
+// Corresponds to the 'messagePosts' collection in Firestore
+export interface MessagePost {
+  id?: string;
+  title: string;
+  content: string; // This will store the rich text (e.g., HTML from React-Quill)
+  categoryId: string;
+  authorId: string;
+  authorName?: string; // Denormalized for easier display
+  authorPhotoURL?: string | null; // Denormalized
+  createdAt: Timestamp; // Will be a Firestore Timestamp when fetched
+  updatedAt?: Timestamp; // Optional - will be set when a post is edited
+  commentCount?: number; // Add this for denormalized comment count
+  // Add other fields like upvotes, likeCount later if needed
+}
+
+// Corresponds to the 'messageComments' subcollection or collection
+export interface MessageComment {
+  id: string;                      // Firestore document ID
+  postId: string;                  // Reference to the MessagePost document ID
+  authorId: string;                // UID of the comment author (was userId)
+  authorName?: string;             // Denormalized author's full name or display name
+  authorPhotoURL?: string | null;  // Denormalized author's photo URL
+  content: string;                 // Rich text HTML content
+  createdAt: Timestamp;            // Firestore Timestamp (enforced on fetch)
+  updatedAt?: Timestamp;           // Firestore Timestamp (optional)
 }

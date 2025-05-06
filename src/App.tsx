@@ -19,6 +19,10 @@ import CourseDetails from "./pages/CourseDetails";
 import WeekDetails from "./pages/WeekDetails";
 import ChapterDetails from "./pages/ChapterDetails";
 import NotFound from "./pages/NotFound";
+import AuthActionHandlerPage from "./pages/AuthActionHandlerPage";
+import EventsPage from "./pages/EventsPage";
+import MessageBoardPage from "./pages/MessageBoardPage";
+import SinglePostPage from "./pages/SinglePostPage";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -31,6 +35,8 @@ import ChapterForm from "./pages/admin/ChapterForm";
 import AdminUsers from "./pages/admin/AdminUsers";
 import UserForm from "./pages/admin/UserForm";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminMessageCategories from "./pages/admin/AdminMessageCategories";
+import MessageCategoryForm from "./pages/admin/MessageCategoryForm";
 
 // Helper function to attempt admin creation
 const ensureAdminUserExists = async () => {
@@ -85,6 +91,7 @@ const App = () => {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/auth/action" element={<AuthActionHandlerPage />} />
             
             {/* Redirect root to dashboard if logged in, otherwise to login */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -95,6 +102,38 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/events" 
+              element={
+                <PrivateRoute>
+                  <EventsPage />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/message-board" 
+              element={
+                <PrivateRoute>
+                  <MessageBoardPage />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/message-board/:categoryId" 
+              element={
+                <PrivateRoute>
+                  <MessageBoardPage />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/message-board/post/:postId" 
+              element={
+                <PrivateRoute>
+                  <SinglePostPage />
                 </PrivateRoute>
               } 
             />
@@ -229,6 +268,32 @@ const App = () => {
               element={
                 <PrivateRoute requiredRole="admin">
                   <UserForm />
+                </PrivateRoute>
+              } 
+            />
+            
+            {/* Admin Message Board Category Management */}
+            <Route 
+              path="/admin/message-categories" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <AdminMessageCategories />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/message-categories/new" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <MessageCategoryForm />
+                </PrivateRoute>
+              } 
+            />
+            <Route 
+              path="/admin/message-categories/edit/:categoryId" 
+              element={
+                <PrivateRoute requiredRole="admin">
+                  <MessageCategoryForm />
                 </PrivateRoute>
               } 
             />

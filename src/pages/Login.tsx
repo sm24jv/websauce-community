@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +14,17 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth(); // Use the login function from AuthContext
+  const { login } = useAuth();
+  const { settings, loadingSettings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Determine redirect path after login
   const from = location.state?.from?.pathname || "/";
+
+  // Determine logo URL - Update the fallback URL
+  const logoUrl = settings?.logo_url || "https://websauce.be/wp-content/uploads/2018/02/smallLogoWebsauce_hori-1.jpg"; // Fallback
+  const platformName = settings?.platform_name || "Websauce Community"; // Fallback for alt text
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +44,7 @@ const LoginPage: React.FC = () => {
       // We set local error state here primarily to display it in the form UI.
       console.error("Login failed via context:", err);
       // Use the error message potentially passed up, or a default
-      setError(err.message || "Login failed. Please check your credentials.");
+      setError(err.message || "Inloggen mislukt. Controleer je gegevens.");
     } finally {
       setIsSubmitting(false);
     }
@@ -55,15 +61,19 @@ const LoginPage: React.FC = () => {
       <Card className="w-full max-w-md animate-fade-in border-t-4 border-theme-secondary shadow-xl overflow-hidden rounded-lg">
         <CardHeader className="bg-gray-50 p-6 space-y-2 text-center border-b">
           <Link to="/">
-            <img
-              src="https://websauce.be/wp-content/themes/websauce/dist/images/logo.svg"
-              alt="Websauce Logo"
-              className="h-12 mx-auto mb-4"
-            />
+            {!loadingSettings && logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={`${platformName} Logo`}
+                className="h-12 mx-auto mb-4"
+              />
+            ) : (
+              <div className="h-12 w-32 mx-auto mb-4 bg-gray-200 animate-pulse rounded"></div>
+            )}
           </Link>
-          <CardTitle className="text-2xl font-semibold text-gray-800">Login</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-gray-800">Inloggen</CardTitle>
           <CardDescription className="text-gray-500">
-            Access your Websauce Community account
+            Krijg toegang tot je Websauce Community-account
           </CardDescription>
         </CardHeader>
 
@@ -79,11 +89,11 @@ const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="p-6 space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">E-mailadres</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your.email@example.com"
+                placeholder="jouw.email@voorbeeld.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -93,9 +103,9 @@ const LoginPage: React.FC = () => {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Wachtwoord</Label>
                 <Link to="/forgot-password" className="text-xs text-websauce-600 hover:underline transition duration-150 ease-in-out">
-                  Forgot Password?
+                  Wachtwoord vergeten?
                 </Link>
               </div>
               <Input
@@ -119,20 +129,20 @@ const LoginPage: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
+                  Bezig met inloggen...
                 </>
               ) : (
-                "Log in"
+                "Inloggen"
               )}
             </Button>
-            {/* Link to Register Page - Assuming one will be created */} 
+            {/* Link to Register Page - Assuming one will be created */}
             <p className="text-center text-sm text-gray-600">
-              Don't have an account?{" "}
+              Heb je nog geen account?{" "}
               <Link to="/register" className="font-medium text-websauce-600 hover:underline transition duration-150 ease-in-out">
-                Sign up
+                Registreer
               </Link>
             </p>
-            {/* Button for testing admin credentials */} 
+            {/* Button for testing admin credentials */}
             {import.meta.env.DEV && (
               <Button
                 type="button"
@@ -140,7 +150,7 @@ const LoginPage: React.FC = () => {
                 onClick={fillAdminCredentials}
                 className="w-full text-xs text-gray-600 border-gray-300 hover:bg-gray-100 transition duration-150 ease-in-out"
               >
-                Use Admin Credentials (Dev Only)
+                Gebruik admin-gegevens (Alleen voor ontwikkeling)
               </Button>
             )}
           </CardFooter>

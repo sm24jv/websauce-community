@@ -9,21 +9,21 @@ const getFirebaseAuthErrorMessage = (error: any): string => {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
-        return 'Invalid email or password.';
+        return 'Ongeldig e-mailadres of wachtwoord.';
       case 'auth/email-already-in-use':
-        return 'This email address is already in use.';
+        return 'Dit e-mailadres is al in gebruik.';
       case 'auth/weak-password':
-        return 'Password should be at least 6 characters.';
+        return 'Wachtwoord moet minimaal 6 tekens lang zijn.';
       case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
+        return 'Voer een geldig e-mailadres in.';
       // Add more cases as needed
       default:
         console.error("Unhandled Firebase Auth Error:", error);
-        return 'An unexpected authentication error occurred.';
+        return 'Er is een onverwachte authenticatiefout opgetreden.';
     }
   }
   console.error("Non-Firebase Auth Error:", error);
-  return 'An unexpected error occurred.';
+  return 'Er is een onverwachte fout opgetreden.';
 };
 
 // Define Admin Email (consider using environment variable for flexibility)
@@ -40,7 +40,7 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       console.warn("Login attempt failed: Email not verified for UID:", firebaseUser.uid);
       await FirebaseUtils.signOut(); 
       localStorage.removeItem("websauce_user");
-      return { user: null, error: "Please verify your email address before logging in. Check your inbox (and spam folder)." };
+      return { user: null, error: "Verifieer je e-mailadres voordat je inlogt. Controleer je inbox (en spammap)." };
     }
 
     // Proceed if email is verified OR if it's the admin user
@@ -51,14 +51,14 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       console.error("User profile not found after login for UID:", firebaseUser.uid);
       await FirebaseUtils.signOut();
       localStorage.removeItem("websauce_user");
-      return { user: null, error: "User profile not found. Please contact support." };
+      return { user: null, error: "Gebruikersprofiel niet gevonden. Neem contact op met support." };
     }
 
     // Check user status (applies to all roles)
     if (userProfile.status !== "active") {
       await FirebaseUtils.signOut();
       localStorage.removeItem("websauce_user");
-      return { user: null, error: "Your account is not active. Please contact an administrator." };
+      return { user: null, error: "Je account is niet actief. Neem contact op met een beheerder." };
     }
 
     // Check membership validity ONLY for non-admin users
@@ -66,7 +66,7 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       if (!userProfile.start_date || !userProfile.end_date) {
           await FirebaseUtils.signOut();
           localStorage.removeItem("websauce_user");
-          return { user: null, error: "Membership date information is missing. Please contact support." };
+          return { user: null, error: "Lidmaatschapsdatuminformatie ontbreekt. Neem contact op met support." };
       }
       const now = new Date();
       const startDate = new Date(userProfile.start_date);
@@ -74,7 +74,7 @@ export const login = async (email: string, password: string): Promise<{ user: Us
       if (now < startDate || now > endDate) {
         await FirebaseUtils.signOut();
         localStorage.removeItem("websauce_user");
-        return { user: null, error: "Your membership is not active for the current date." };
+        return { user: null, error: "Je lidmaatschap is niet actief voor de huidige datum." };
       }
     }
     
@@ -158,7 +158,11 @@ export const updatePassword = async (password: string): Promise<{ success: boole
   }
 };
 
-export const createUser = async (email: string, password: string, userData: Omit<User, 'id' | 'email'>): Promise<User | null> => {
+export const createUser = async (
+  email: string, 
+  password: string, 
+  userData: Omit<User, 'id' | 'email'>
+): Promise<{ user: User | null; error: string | null }> => {
   let firebaseUserUid: string | null = null;
   try {
     console.log("Creating Firebase user:", email);
@@ -175,26 +179,24 @@ export const createUser = async (email: string, password: string, userData: Omit
     const newUser: User = {
       id: firebaseUserUid,
       email: email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
       role: userData.role,
       status: userData.status,
       start_date: userData.start_date,
       end_date: userData.end_date
     };
-    return newUser;
+    return { user: newUser, error: null };
 
   } catch (error) {
     console.error("Error during user creation process:", error);
     
-    // Determine the error message, but don't re-throw
     const errorMessage = getFirebaseAuthErrorMessage(error);
     console.error(`CreateUser Error Message: ${errorMessage}`);
 
     // Optional: Attempt cleanup if Firestore creation failed but Auth succeeded
     // if (firebaseUserUid) { ... }
 
-    // Since an error occurred somewhere, return null to indicate failure 
-    // to the calling function (Register.tsx) without throwing.
-    // Register.tsx's check `if (newUser)` will handle this.
-    return null; 
+    return { user: null, error: errorMessage }; 
   }
 };

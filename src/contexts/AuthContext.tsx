@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Check status (applies to all)
             if (userProfile.status !== "active") {
               console.warn("User account is not active:", userProfile.id);
-              toast({ title: "Account Inactive", description: "Your account is not active. Please contact an administrator.", variant: "destructive" });
+              toast({ title: "Account inactief", description: "Je account is niet actief. Neem contact op met een beheerder.", variant: "destructive" });
               await authLogout(); // Sign out user from Firebase and clear local storage
               setUser(null);
             } else {
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (userProfile.role !== 'admin') {
                  if (!userProfile.start_date || !userProfile.end_date) {
                      console.warn("User missing required start/end dates:", userProfile.id);
-                     toast({ title: "Profile Error", description: "Membership date information is missing. Please contact support.", variant: "destructive" });
+                     toast({ title: "Profielfout", description: "Lidmaatschapsdatuminformatie ontbreekt. Neem contact op met support.", variant: "destructive" });
                      datesValid = false;
                  } else {
                     const now = new Date();
@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const endDate = new Date(userProfile.end_date);
                     if (now < startDate || now > endDate) {
                       console.warn("User membership is not valid for today:", userProfile.id);
-                      toast({ title: "Membership Invalid", description: "Your membership is not active for the current date.", variant: "destructive" });
+                      toast({ title: "Lidmaatschap ongeldig", description: "Je lidmaatschap is niet actief voor de huidige datum.", variant: "destructive" });
                       datesValid = false;
                     }
                  }
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.warn("User profile not found in Firestore for logged-in Firebase user:", fbUser.uid);
             // Optional: Sign out the user if their profile is missing?
             // await authLogout();
-            // toast({ title: "Profile Error", description: "Could not load user profile. Please contact support.", variant: "destructive" });
+            // toast({ title: "Profielfout", description: "Kon gebruikersprofiel niet laden. Neem contact op met support.", variant: "destructive" });
             setUser(null); // Ensure app user is null if profile is missing
             localStorage.removeItem("websauce_user");
           }
@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         // Toast the specific error from authLogin
         toast({
-          title: "Login Failed",
+          title: "Inloggen mislukt",
           description: error,
           variant: "destructive",
         });
@@ -123,16 +123,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // User state is set by the onAuthStateChanged listener,
         // we just show a success message here.
         toast({
-          title: "Login Successful",
-          description: `Welcome back, ${loggedInUser.email}!`,
+          title: "Succesvol ingelogd",
+          description: `Welkom terug, ${loggedInUser.email}!`,
         });
         // Successful login, no error to throw
       }
       // If no user and no error (shouldn't happen with current authLogin), treat as error
       else {
-        const fallbackError = "Login failed: Unknown error.";
+        const fallbackError = "Inloggen mislukt: Onbekende fout.";
          toast({
-          title: "Login Failed",
+          title: "Inloggen mislukt",
           description: fallbackError,
           variant: "destructive",
         });
@@ -159,15 +159,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authLogout(); // This calls Firebase signOut and clears local storage
       // The onAuthStateChanged listener will automatically set user and firebaseUser to null
       toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
+        title: "Uitgelogd",
+        description: "Je bent succesvol uitgelogd.",
       });
       console.log("Logout successful via context.");
     } catch (error) {
       console.error("Logout error in context:", error);
       toast({
-        title: "Logout Error",
-        description: "There was a problem logging you out.",
+        title: "Fout bij uitloggen",
+        description: "Er was een probleem met uitloggen.",
         variant: "destructive",
       });
       // Ensure local state is cleared even if Firebase logout fails
@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth moet binnen een AuthProvider worden gebruikt");
   }
   return context;
 };

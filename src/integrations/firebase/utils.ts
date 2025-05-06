@@ -93,6 +93,8 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
     return {
       id: docSnap.id,
       email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
       role: data.role as UserRole,
       status: data.status as UserStatus,
       start_date: data.start_date,
