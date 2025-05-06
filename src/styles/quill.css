@@ -1,0 +1,53 @@
+/* Custom styles for ReactQuill content */
+
+/* Ensure all quill content wraps correctly */
+.ql-editor {
+  white-space: normal !important;
+}
+
+/* Fix for images in quill content */
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix for links in quill content */
+.ql-editor a {
+  color: theme('colors.websauce.500');
+  text-decoration: underline;
+}
+
+/* Fix for bullet lists */
+.ql-editor ul {
+  list-style-type: disc;
+  margin-left: 1.5em;
+}
+
+/* Fix for numbered lists */
+.ql-editor ol {
+  list-style-type: decimal;
+  margin-left: 1.5em;
+}
+
+/* Fix for blockquotes */
+.ql-editor blockquote {
+  border-left: 4px solid #ccc;
+  margin-bottom: 5px;
+  margin-top: 5px;
+  padding-left: 16px;
+}
+
+/* Fix for code blocks */
+.ql-editor pre {
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  padding: 5px 10px;
+  margin: 5px 0;
+}
+
+/* Fix for inline code */
+.ql-editor code {
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  padding: 2px 4px;
+} 

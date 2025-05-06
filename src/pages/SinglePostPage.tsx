@@ -418,7 +418,10 @@ const SinglePostPage: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 px-0 pb-0 border-b border-gray-200 dark:border-gray-700 mb-6">
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div 
+                  className="ql-editor"
+                  dangerouslySetInnerHTML={{ __html: post.content }} 
+                />
               </CardContent>
 
               <CardFooter className="px-0 flex flex-col items-start">
@@ -509,7 +512,7 @@ const SinglePostPage: React.FC = () => {
                               )}
                             </div>
                             <div 
-                              className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
+                              className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 ql-editor"
                               dangerouslySetInnerHTML={{ __html: comment.content }}
                             />
                           </div>

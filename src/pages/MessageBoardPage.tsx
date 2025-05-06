@@ -401,7 +401,7 @@ const MessageBoardPage: React.FC = () => {
                         </CardHeader>
                         <CardContent className="text-gray-700 dark:text-gray-300 pt-2">
                           <div 
-                            className="prose dark:prose-invert max-w-none text-sm mb-3"
+                            className="prose dark:prose-invert max-w-none text-sm mb-3 ql-editor"
                             dangerouslySetInnerHTML={{ __html: post.content.substring(0, 200) + (post.content.length > 200 ? '...' : '') }} 
                           />
                           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
